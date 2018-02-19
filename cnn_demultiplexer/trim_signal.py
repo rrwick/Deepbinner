@@ -39,9 +39,6 @@ def clean_signal(start_signal, end_signal, signal_size, plot):
     if len(trimmed_end) < signal_size:
         good_end = False
 
-    print(start_trim_pos, end_trim_pos)
-    print(start_trim_pos, end_trim_pos)
-
     # Plot the resulting signal (for debugging)
     if plot:
         import matplotlib.pyplot as plt
@@ -73,7 +70,7 @@ def find_signal_start_pos(signal):
     initial_trim_size = 10
     trim_increment = 25
     stdev_threshold = 20
-    look_forward_windows = 4
+    look_forward_windows = 5
     window_count_threshold = 4
 
     # Always trim off the first few bases as these are often dodgy.
