@@ -1,7 +1,8 @@
 
 import random
-
+import time
 import numpy as np
+import datetime
 import matplotlib.pyplot as plt
 
 from keras.layers import Dense, Conv1D, MaxPooling1D, Dropout, Flatten
@@ -19,54 +20,54 @@ def train(args):
     class_count = args.barcode_count + 1
 
     signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
+    signals = np.expand_dims(signals, axis=2)
 
+    print('Building network:')
     model = Sequential()
 
-    model.add(Conv1D(filters=16, kernel_size=3, activation=activation, padding='same',
+    model.add(Conv1D(filters=8, kernel_size=3, activation=activation, padding='same',
                      input_shape=(args.signal_size, 1)))
+    model.add(Conv1D(filters=8, kernel_size=3, activation=activation))
+    model.add(MaxPooling1D(pool_size=2))
+    model.add(Dropout(0.25))
+    
+    model.add(Conv1D(filters=16, kernel_size=3, activation=activation, padding='same'))
     model.add(Conv1D(filters=16, kernel_size=3, activation=activation))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Dropout(0.25))
     
-    model.add(Conv1D(filters=32, kernel_size=3, activation=activation, padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=3, activation=activation))
-    model.add(MaxPooling1D(pool_size=2))
-    model.add(Dropout(0.25))
-    
-    model.add(Conv1D(filters=32, kernel_size=3, activation=activation, padding='same'))
-    model.add(Conv1D(filters=32, kernel_size=3, activation=activation))
+    model.add(Conv1D(filters=16, kernel_size=3, activation=activation, padding='same'))
+    model.add(Conv1D(filters=16, kernel_size=3, activation=activation))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Dropout(0.25))
 
     model.add(Flatten())
-    model.add(Dense(512, activation=activation))
+    model.add(Dense(100, activation=activation))
     model.add(Dropout(0.5))
     model.add(Dense(class_count, activation='softmax'))
 
-
-
-    for layer in model.layers:
-        print()
-        print(layer.input)
-        print(layer.output)
-        print(layer.get_config())
-        print()
-
-    quit()
-
+    model.summary()
+    print('\n')
 
     model.compile(optimizer=optimizer, loss=loss)
 
-    try:
-        model.fit(signals, labels,
-                  epochs=args.epochs,
-                  batch_size=256,
-                  shuffle=True,
-                  validation_split=args.test_fraction)
-    except KeyboardInterrupt:
-        pass
+    before_time = time.time()
+    hist = model.fit(signals, labels,
+                     epochs=args.epochs,
+                     batch_size=args.batch_size,
+                     shuffle=True,
+                     validation_split=args.test_fraction)
+    after_time = time.time()
+    elapsed_minutes = (after_time - before_time) / 60
 
-    quit()
+    print('\n')
+    print('Final validation loss:    ', '%.4f' % hist.history['val_loss'][-1])
+    print('Training time (minutes):  ', '%.2f' % elapsed_minutes)
+
+    time_model_prediction(model, signals)
+
+    model.save(args.model_out)
+    print()
 
 
 def load_training_set(training_data_filename, signal_size, class_count):
@@ -150,3 +151,15 @@ def get_good_part_of_signal(signal, label, signal_size):
     signal = (signal - mean) / stdev
 
     return signal, trim_pos
+
+
+def time_model_prediction(model, signals):
+    min_time = float('inf')
+    for _ in range(10):
+        before_time = time.time()
+        model.predict(signals)
+        after_time = time.time()
+        elapsed_milliseconds = (after_time - before_time) * 1000
+        milliseconds_per_read = elapsed_milliseconds / len(signals)
+        min_time = min(min_time, milliseconds_per_read)
+    print('Prediction time (ms/read):', '%.4f' % min_time)

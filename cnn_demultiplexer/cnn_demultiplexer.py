@@ -6,7 +6,7 @@ def main():
     parser = argparse.ArgumentParser(description='CNN demultiplexer for Oxford Nanopore reads')
     subparsers = parser.add_subparsers(dest='subparser_name')
     porechop_subparser(subparsers)
-    select_subparser(subparsers)
+    balance_subparser(subparsers)
     train_subparser(subparsers)
     args = parser.parse_args()
     if args.subparser_name == 'porechop':
@@ -46,7 +46,7 @@ def porechop_subparser(subparsers):
                             'training data')
 
 
-def select_subparser(subparsers):
+def balance_subparser(subparsers):
     group = subparsers.add_parser('balance', description='Select balanced set of training samples')
 
     # Positional arguments
@@ -66,6 +66,8 @@ def train_subparser(subparsers):
     # Positional arguments
     group.add_argument('training_data', type=str,
                        help='Balanced training data produced by the select command')
+    group.add_argument('model_out', type=str,
+                       help='Filename for saving the trained model')
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
@@ -75,6 +77,8 @@ def train_subparser(subparsers):
                        help='The number of discrete barcodes')
     group.add_argument('--epochs', type=int, required=False, default=100,
                        help='Number of training epochs')
+    group.add_argument('--batch_size', type=int, required=False, default=256,
+                       help='Training batch size')
     group.add_argument('--test_fraction', type=float, required=False, default=0.1,
                        help='This fraction of the training samples will be used as a test set')
 

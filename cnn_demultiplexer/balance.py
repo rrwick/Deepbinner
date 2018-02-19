@@ -1,14 +1,10 @@
 
-import sys
 import collections
 import random
 
 
 def balance_training_samples(args):
-    raw_training_data_filename = sys.argv[1]
-    output_prefix = sys.argv[2]
-
-    bin_counts, bin_lines = load_data_by_bin(raw_training_data_filename)
+    bin_counts, bin_lines = load_data_by_bin(args.training_data)
     smallest_count = min(bin_counts.values())
 
     bins = sorted(bin_counts.keys(), key=lambda x: int(x))
@@ -21,8 +17,8 @@ def balance_training_samples(args):
     print('  and ' + str(none_count) + ' samples with no barcode')
     print('  for a total of ' + str(total_count) + ' samples')
 
-    start_filename = output_prefix + '_read_starts'
-    end_filename = output_prefix + '_read_ends'
+    start_filename = args.out_prefix + '_read_starts'
+    end_filename = args.out_prefix + '_read_ends'
 
     with open(start_filename, 'w') as start_read_file, open(end_filename, 'w') as end_read_file:
         middle_signals = []
