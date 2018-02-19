@@ -7,23 +7,12 @@ import h5py
 import numpy
 
 
-# This is the target amount of signal data (in samples) that will be used in the CNN. This script
-# will save this much from the middle of reads (for no barcode data points), but since the read
-# can begin/end with open pore signal, it will save more signal from the read starts/ends and
-# continue adding signal until the stdev threshold is met.
-signal_size = 1000
-stdev_threshold = 50
-max_start_end_margin = 5000
-
-# Reads with too short of a signal are ignored.
-min_signal_length = 20000
-
-
-def main():
+def training_data_from_porechop(args):
     porechop_output_filename = sys.argv[1]
     fast5_dir = sys.argv[2]
 
-    signals = get_signal_from_fast5s(fast5_dir)
+    signals = get_signal_from_fast5s(fast5_dir, args.signal_size, args.stdev_threshold,
+                                     args.max_start_end_margin, args.min_signal_length)
 
     print('\t'.join(['Read_ID', 'Barcode_bin',
                      'Barcode_distance_from_start', 'Barcode_distance_from_end',
@@ -113,7 +102,8 @@ def get_start_end_coords(barcode_bin, read_info):
         return barcode_bin, '', ''
 
 
-def get_signal_from_fast5s(fast5_dir):
+def get_signal_from_fast5s(fast5_dir, signal_size, stdev_threshold, max_start_end_margin,
+                           min_signal_length):
     fast5_files = find_all_fast5s(fast5_dir)
     print('Loading signal from ' + str(len(fast5_files)) + ' fast5 files',
           end='', file=sys.stderr)
@@ -145,7 +135,6 @@ def get_signal_from_fast5s(fast5_dir):
             middle_1 = middle_pos - (signal_size // 2)
             middle_2 = middle_pos + (signal_size // 2)
             middle_signal = signal[middle_1:middle_2]
-
 
             start_margin = signal_size * 2
             while True:
@@ -186,7 +175,3 @@ def find_all_fast5s(directory):
             if filename.endswith('.fast5'):
                 fast5s.append(os.path.join(dir_name, filename))
     return fast5s
-
-
-if __name__ == '__main__':
-    main()

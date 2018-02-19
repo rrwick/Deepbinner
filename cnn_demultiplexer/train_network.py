@@ -1,42 +1,29 @@
 
-import sys
-import os
-import h5py
 import random
-import statistics
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-from keras.layers import Input, Dense, Conv1D, MaxPooling1D, UpSampling1D, Dropout, Flatten
-from keras.models import Model, Sequential
+from keras.layers import Dense, Conv1D, MaxPooling1D, Dropout, Flatten
+from keras.models import Sequential
+from .trim_signal import find_signal_start_pos
 
 
-# Parameters
-signal_length = 1000
-barcode_count = 12
-test_fraction = 0.1
-epochs = 100
+# Some hard-coded parameters
 optimizer = 'rmsprop'
 loss = 'binary_crossentropy'
 activation = 'relu'
 
-# To determine the start of the real signal (as opposed to the open pore signal), we look at the
-# median absolute deviation over a sliding window and note when it exceeds a threshold.
-sliding_window_size = 250
-mad_threshold = 20
 
+def train_network(args):
+    class_count = args.barcode_count + 1
 
-def main():
-    training_data_filename = sys.argv[1]
-
-    print()
-    training_signals, training_labels, testing_signals, testing_labels = \
-        load_train_and_test_sets(training_data_filename)
+    signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
 
     model = Sequential()
 
-    model.add(Conv1D(filters=16, kernel_size=3, activation=activation, padding='same', input_shape=(signal_length,1)))
+    model.add(Conv1D(filters=16, kernel_size=3, activation=activation, padding='same',
+                     input_shape=(args.signal_size, 1)))
     model.add(Conv1D(filters=16, kernel_size=3, activation=activation))
     model.add(MaxPooling1D(pool_size=2))
     model.add(Dropout(0.25))
@@ -54,7 +41,7 @@ def main():
     model.add(Flatten())
     model.add(Dense(512, activation=activation))
     model.add(Dropout(0.5))
-    model.add(Dense(barcode_count + 1, activation='softmax'))
+    model.add(Dense(class_count, activation='softmax'))
 
 
 
@@ -71,73 +58,64 @@ def main():
     model.compile(optimizer=optimizer, loss=loss)
 
     try:
-        model.fit(training_signals, training_labels,
-                  epochs=epochs,
+        model.fit(signals, labels,
+                  epochs=args.epochs,
                   batch_size=256,
                   shuffle=True,
-                  validation_data=(testing_signals, testing_labels))
+                  validation_split=args.test_fraction)
     except KeyboardInterrupt:
         pass
 
     quit()
 
 
-
-
-
-def load_train_and_test_sets(training_data_filename):
+def load_training_set(training_data_filename, signal_size, class_count):
     random.seed(0)
 
-    training_data, testing_data = [], []
+    training_data = []
 
+    print()
     print('Loading data from file... ', end='')
     with open(training_data_filename, 'rt') as training_data_text:
         for line in training_data_text:
             parts = line.strip().split('\t')
-            label = parts[0]
-            signal = parts[1]
-            if random.random() < test_fraction:
-                testing_data.append((label, signal))
-            else:
-                training_data.append((label, signal))
+            training_data.append((parts[0], parts[1]))
     print('done')
     print(' ', len(training_data), 'training samples')
-    print(' ', len(testing_data), 'testing samples')
+
+    random.shuffle(training_data)
 
     print()
     print('Preparing signal data', end='')
-    training_signals, training_labels = load_data_into_numpy(training_data)
-    testing_signals, testing_labels = load_data_into_numpy(testing_data)
+    signals, labels = load_data_into_numpy(training_data, signal_size, class_count)
     print(' done')
-    print(' ', len(training_signals), 'training samples')
-    print(' ', len(testing_signals), 'testing samples')
-    print('\n')
+    print()
 
-    return training_signals, training_labels, testing_signals, testing_labels
+    return signals, labels
 
 
-def load_data_into_numpy(data_list):
-    signals = np.empty([len(data_list), signal_length], dtype=float)
-    labels = np.empty([len(data_list), barcode_count + 1], dtype=float)
+def load_data_into_numpy(data_list, signal_size, class_count):
+    signals = np.empty([len(data_list), signal_size], dtype=float)
+    labels = np.empty([len(data_list), class_count], dtype=float)
 
     for i, data in enumerate(data_list):
         label, signal = data
         label = int(label)
 
         signal = [float(x) for x in signal.split(',')]
-        good_signal, trim_pos = get_good_part_of_signal(signal, label)
+        good_signal, trim_pos = get_good_part_of_signal(signal, label, signal_size)
 
         # # Plot the resulting signal (for debugging)
         # print(np.std(signal))
         # plt.plot(signal)
         # plt.axvline(x=trim_pos, color='red')
-        # plt.axvline(x=trim_pos+signal_length, color='red')
+        # plt.axvline(x=trim_pos+signal_size, color='red')
         # plt.show()
 
         if len(good_signal) == 0:
             continue
 
-        label_list = [0.0] * (barcode_count + 1)
+        label_list = [0.0] * class_count
         label_list[label] = 1.0
 
         signals[i] = good_signal
@@ -149,11 +127,11 @@ def load_data_into_numpy(data_list):
     return signals, labels
 
 
-def get_good_part_of_signal(signal, label):
+def get_good_part_of_signal(signal, label, signal_size):
     # If the label is 0, then this isn't a read start/end, but rather signal taken from
     # the middle of a read, so we just grab the middle of the available signal.
     if label == 0:
-        trim_pos = (len(signal) // 2) - (signal_length // 2)
+        trim_pos = (len(signal) // 2) - (signal_size // 2)
 
     # If the label is a barcode, then we want to start the signal right after the open
     # pore signal ends.
@@ -162,8 +140,8 @@ def get_good_part_of_signal(signal, label):
         if trim_pos == 0:
             return np.empty(0), 0
 
-    signal = signal[trim_pos:trim_pos + signal_length]
-    if len(signal) < signal_length:
+    signal = signal[trim_pos:trim_pos + signal_size]
+    if len(signal) < signal_size:
         return np.empty(0), 0
 
     # Normalise the signal to zero mean and unit stdev.
@@ -172,23 +150,3 @@ def get_good_part_of_signal(signal, label):
     signal = (signal - mean) / stdev
 
     return signal, trim_pos
-
-
-def find_signal_start_pos(signal):
-    """
-    Given a signal, this function attempts to identify the approximate position where the open
-    pore signal ends and the real signal begins.
-    """
-    for i in range(len(signal) - sliding_window_size):
-        if median_absolute_deviation(signal[i:i+sliding_window_size]) > mad_threshold:
-            return i + (sliding_window_size // 2)
-    return 0
-
-
-def median_absolute_deviation(arr):
-    med = np.median(arr)
-    return np.median(np.abs(arr - med))
-
-
-if __name__ == '__main__':
-    main()
