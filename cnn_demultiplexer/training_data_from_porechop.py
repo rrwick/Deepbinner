@@ -8,17 +8,14 @@ import numpy
 
 
 def training_data_from_porechop(args):
-    porechop_output_filename = sys.argv[1]
-    fast5_dir = sys.argv[2]
-
-    signals = get_signal_from_fast5s(fast5_dir, args.signal_size, args.stdev_threshold,
+    signals = get_signal_from_fast5s(args.fast5_dir, args.signal_size, args.stdev_threshold,
                                      args.max_start_end_margin, args.min_signal_length)
 
     print('\t'.join(['Read_ID', 'Barcode_bin',
                      'Barcode_distance_from_start', 'Barcode_distance_from_end',
                      'Start_read_signal', 'Middle_read_signal', 'End_read_signal']))
     
-    with open(porechop_output_filename, 'rt') as porechop_output:
+    with open(args.porechop_out, 'rt') as porechop_output:
         for line in porechop_output:
             m = re.search(r'^\w{8}-\w{4}-\w{4}-\w{4}-\w{12}', line)
             if m:
