@@ -48,7 +48,7 @@ def balance_subparser(subparsers):
     group.add_argument('training_data', type=str,
                        help='Raw training data produced by the porechop command')
     group.add_argument('out_prefix', type=str,
-                       help='A prefix for the output files (*_read_starts and *_read_ends)')
+                       help='Prefix for the output files (*_read_starts and *_read_ends)')
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
@@ -65,8 +65,8 @@ def train_subparser(subparsers):
     # Positional arguments
     group.add_argument('training_data', type=str,
                        help='Balanced training data produced by the select command')
-    group.add_argument('model_out', type=str,
-                       help='Filename for saving the trained model')
+    group.add_argument('out_prefix', type=str,
+                       help='Prefix for the output files (*_model and *_loss)')
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,

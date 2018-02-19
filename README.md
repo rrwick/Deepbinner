@@ -52,6 +52,6 @@ This command finalises the training data. It produces two separate files, one fo
 ## Training the neural network
 
 ```
-cnn_demultiplexer train balanced_training_data_read_starts
-cnn_demultiplexer train balanced_training_data_read_ends
+cnn_demultiplexer train balanced_training_data_read_starts read_start
+cnn_demultiplexer train balanced_training_data_read_ends read_end
 ```
