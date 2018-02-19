@@ -34,7 +34,7 @@ def porechop_subparser(subparsers):
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
                        help='Amount of signal (number of samples) that will be used in the CNN')
-    group.add_argument('--stdev_threshold', type=float, required=False, default=50,
+    group.add_argument('--stdev_threshold', type=float, required=False, default=60,
                        help='Signal with a stdev less than this will is judged to contain too '
                             'much open pore signal')
     group.add_argument('--max_start_end_margin', type=float, required=False, default=5000,
