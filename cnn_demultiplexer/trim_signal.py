@@ -115,7 +115,7 @@ def too_much_open_pore(signal):
     """
     window_size = 100
     stdev_threshold = 30
-    fraction = 0.25
+    fraction = 0.4
 
     window_count = int(len(signal) / window_size)
     window_stdevs = [get_window_stdev(signal, 0, i, window_size) for i in range(window_count)]
