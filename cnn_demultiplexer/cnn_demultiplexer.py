@@ -33,8 +33,7 @@ def porechop_subparser(subparsers):
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
-                       help='Target amount of signal data (number of samples) that will be used '
-                            'in the CNN')
+                       help='Amount of signal (number of samples) that will be used in the CNN')
     group.add_argument('--stdev_threshold', type=float, required=False, default=50,
                        help='Signal with a stdev less than this will is judged to contain too '
                             'much open pore signal')
@@ -56,8 +55,12 @@ def balance_subparser(subparsers):
                        help='A prefix for the output files (*_read_starts and *_read_ends)')
 
     # Optional arguments
+    group.add_argument('--signal_size', type=int, required=False, default=1000,
+                       help='Amount of signal (number of samples) that will be used in the CNN')
     group.add_argument('--none_bin_rate', type=float, required=False, default=0.333333,
                        help='This fraction of the training samples will be no barcode signal')
+    group.add_argument('--plot', action='store_true',
+                       help='Display the signal plots for each read (for debugging use)')
 
 
 def train_subparser(subparsers):
@@ -71,8 +74,7 @@ def train_subparser(subparsers):
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
-                       help='Target amount of signal data (number of samples) that will be used '
-                            'in the CNN')
+                       help='Amount of signal (number of samples) that will be used in the CNN')
     group.add_argument('--barcode_count', type=int, required=False, default=12,
                        help='The number of discrete barcodes')
     group.add_argument('--epochs', type=int, required=False, default=100,

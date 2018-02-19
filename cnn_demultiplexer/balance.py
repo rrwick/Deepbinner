@@ -1,9 +1,14 @@
 
 import collections
 import random
+from .trim_signal import clean_signal
+import numpy as np
 
 
 def balance_training_samples(args):
+    if args.plot:
+        import matplotlib.pyplot as plt
+
     bin_counts, bin_lines = load_data_by_bin(args.training_data)
     smallest_count = min(bin_counts.values())
 
@@ -28,15 +33,20 @@ def balance_training_samples(args):
                 assert barcode_bin == parts[1]
                 start_signal, middle_signal, end_signal = parts[4], parts[5], parts[6]
 
-                start_read_file.write(barcode_bin)
-                start_read_file.write('\t')
-                start_read_file.write(start_signal)
-                start_read_file.write('\n')
+                start_signal, end_signal, good_start, good_end = \
+                    clean_signal(start_signal, end_signal, args.signal_size, args.plot)
 
-                end_read_file.write(barcode_bin)
-                end_read_file.write('\t')
-                end_read_file.write(end_signal)
-                end_read_file.write('\n')
+                if good_start:
+                    start_read_file.write(barcode_bin)
+                    start_read_file.write('\t')
+                    start_read_file.write(start_signal)
+                    start_read_file.write('\n')
+
+                if good_end:
+                    end_read_file.write(barcode_bin)
+                    end_read_file.write('\t')
+                    end_read_file.write(end_signal)
+                    end_read_file.write('\n')
 
                 middle_signals.append(middle_signal)
 

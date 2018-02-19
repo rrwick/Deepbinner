@@ -2,12 +2,9 @@
 import random
 import time
 import numpy as np
-import datetime
-import matplotlib.pyplot as plt
 
 from keras.layers import Dense, Conv1D, MaxPooling1D, Dropout, Flatten
 from keras.models import Sequential
-from .trim_signal import find_signal_start_pos
 
 
 # Some hard-coded parameters
@@ -104,53 +101,22 @@ def load_data_into_numpy(data_list, signal_size, class_count):
         label = int(label)
 
         signal = [float(x) for x in signal.split(',')]
-        good_signal, trim_pos = get_good_part_of_signal(signal, label, signal_size)
 
-        # # Plot the resulting signal (for debugging)
-        # print(np.std(signal))
-        # plt.plot(signal)
-        # plt.axvline(x=trim_pos, color='red')
-        # plt.axvline(x=trim_pos+signal_size, color='red')
-        # plt.show()
-
-        if len(good_signal) == 0:
-            continue
+        # Normalise to zero mean and unit stdev.
+        mean = np.mean(signal)
+        stdev = np.std(signal)
+        signal = (signal - mean) / stdev
 
         label_list = [0.0] * class_count
         label_list[label] = 1.0
 
-        signals[i] = good_signal
+        signals[i] = signal
         labels[i] = label_list
 
         if i % 100 == 0:
             print('.', end='', flush=True)
 
     return signals, labels
-
-
-def get_good_part_of_signal(signal, label, signal_size):
-    # If the label is 0, then this isn't a read start/end, but rather signal taken from
-    # the middle of a read, so we just grab the middle of the available signal.
-    if label == 0:
-        trim_pos = (len(signal) // 2) - (signal_size // 2)
-
-    # If the label is a barcode, then we want to start the signal right after the open
-    # pore signal ends.
-    else:
-        trim_pos = find_signal_start_pos(signal)
-        if trim_pos == 0:
-            return np.empty(0), 0
-
-    signal = signal[trim_pos:trim_pos + signal_size]
-    if len(signal) < signal_size:
-        return np.empty(0), 0
-
-    # Normalise the signal to zero mean and unit stdev.
-    mean = np.mean(signal)
-    stdev = np.std(signal)
-    signal = (signal - mean) / stdev
-
-    return signal, trim_pos
 
 
 def time_model_prediction(model, signals):
