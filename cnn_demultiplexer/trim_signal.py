@@ -1,5 +1,5 @@
 
-import numpy
+import numpy as np
 
 # To determine the start of the real signal (as opposed to the open pore signal), we look at the
 # median absolute deviation over a sliding window and note when it exceeds a threshold.

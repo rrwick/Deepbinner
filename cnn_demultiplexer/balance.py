@@ -4,7 +4,7 @@ import collections
 import random
 
 
-def select_training_samples(args):
+def balance_training_samples(args):
     raw_training_data_filename = sys.argv[1]
     output_prefix = sys.argv[2]
 

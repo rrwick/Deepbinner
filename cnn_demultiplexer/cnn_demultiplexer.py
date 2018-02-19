@@ -10,14 +10,14 @@ def main():
     train_subparser(subparsers)
     args = parser.parse_args()
     if args.subparser_name == 'porechop':
-        from .training_data_from_porechop import training_data_from_porechop
+        from .porechop import training_data_from_porechop
         training_data_from_porechop(args)
-    if args.subparser_name == 'porechop':
-        from .select_training_samples import select_training_samples
-        select_training_samples(args)
-    if args.subparser_name == 'porechop':
-        from .train_network import train_network
-        train_network(args)
+    if args.subparser_name == 'balance':
+        from .balance import balance_training_samples
+        balance_training_samples(args)
+    if args.subparser_name == 'train':
+        from .train_network import train
+        train(args)
 
 
 def porechop_subparser(subparsers):
@@ -47,7 +47,7 @@ def porechop_subparser(subparsers):
 
 
 def select_subparser(subparsers):
-    group = subparsers.add_parser('select', description='Select balanced set of training samples')
+    group = subparsers.add_parser('balance', description='Select balanced set of training samples')
 
     # Positional arguments
     group.add_argument('training_data', type=str,

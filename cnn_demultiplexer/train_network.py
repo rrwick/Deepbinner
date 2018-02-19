@@ -15,7 +15,7 @@ loss = 'binary_crossentropy'
 activation = 'relu'
 
 
-def train_network(args):
+def train(args):
     class_count = args.barcode_count + 1
 
     signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
