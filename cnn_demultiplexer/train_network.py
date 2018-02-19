@@ -101,6 +101,7 @@ def load_data_into_numpy(data_list, signal_size, class_count):
         label = int(label)
 
         signal = [float(x) for x in signal.split(',')]
+        assert len(signal) == signal_size
 
         # Normalise to zero mean and unit stdev.
         mean = np.mean(signal)

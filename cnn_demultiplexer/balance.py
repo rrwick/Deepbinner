@@ -6,9 +6,6 @@ import numpy as np
 
 
 def balance_training_samples(args):
-    if args.plot:
-        import matplotlib.pyplot as plt
-
     bin_counts, bin_lines = load_data_by_bin(args.training_data)
     smallest_count = min(bin_counts.values())
 

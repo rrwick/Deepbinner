@@ -5,11 +5,12 @@ import re
 import os
 import h5py
 import numpy
+from .trim_signal import too_much_open_pore
 
 
 def training_data_from_porechop(args):
-    signals = get_signal_from_fast5s(args.fast5_dir, args.signal_size, args.stdev_threshold,
-                                     args.max_start_end_margin, args.min_signal_length)
+    signals = get_signal_from_fast5s(args.fast5_dir, args.signal_size, args.max_start_end_margin,
+                                     args.min_signal_length)
 
     print('\t'.join(['Read_ID', 'Barcode_bin',
                      'Barcode_distance_from_start', 'Barcode_distance_from_end',
@@ -99,8 +100,7 @@ def get_start_end_coords(barcode_bin, read_info):
         return barcode_bin, '', ''
 
 
-def get_signal_from_fast5s(fast5_dir, signal_size, stdev_threshold, max_start_end_margin,
-                           min_signal_length):
+def get_signal_from_fast5s(fast5_dir, signal_size, max_start_end_margin, min_signal_length):
     fast5_files = find_all_fast5s(fast5_dir)
     print('Loading signal from ' + str(len(fast5_files)) + ' fast5 files',
           end='', file=sys.stderr)
@@ -134,20 +134,14 @@ def get_signal_from_fast5s(fast5_dir, signal_size, stdev_threshold, max_start_en
             middle_signal = signal[middle_1:middle_2]
 
             start_margin = signal_size * 2
-            while True:
-                start_signal = signal[:start_margin]
-                if numpy.std(start_signal) > stdev_threshold:
-                    break
+            while too_much_open_pore(signal[:start_margin]):
                 start_margin += signal_size
                 if start_margin > max_start_end_margin:
                     bad_signal = True
                     break
             
             end_margin = signal_size * 2
-            while True:
-                end_signal = signal[-end_margin:]
-                if numpy.std(end_signal) > stdev_threshold:
-                    break
+            while too_much_open_pore(signal[-end_margin:]):
                 end_margin += signal_size
                 if end_margin > max_start_end_margin:
                     bad_signal = True
@@ -157,7 +151,7 @@ def get_signal_from_fast5s(fast5_dir, signal_size, stdev_threshold, max_start_en
                 bad_signal_count += 1
                 continue
 
-            signals[read_id] = (start_signal, middle_signal, end_signal)
+            signals[read_id] = (signal[:start_margin], middle_signal, signal[-end_margin:])
 
     print(' done', file=sys.stderr)
     print('skipped ' + str(short_count) + ' reads for being too short\n', file=sys.stderr)

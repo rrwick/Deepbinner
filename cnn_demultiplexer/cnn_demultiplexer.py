@@ -34,12 +34,8 @@ def porechop_subparser(subparsers):
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
                        help='Amount of signal (number of samples) that will be used in the CNN')
-    group.add_argument('--stdev_threshold', type=float, required=False, default=60,
-                       help='Signal with a stdev less than this will is judged to contain too '
-                            'much open pore signal')
-    group.add_argument('--max_start_end_margin', type=float, required=False, default=5000,
-                       help='If a read signal does not reach a sufficient stdev after this many '
-                            'samples, it is excluded from the training data')
+    group.add_argument('--max_start_end_margin', type=float, required=False, default=6000,
+                       help="Up to this much of a read's start/end signal will be saved")
     group.add_argument('--min_signal_length', type=float, required=False, default=20000,
                        help='Reads with fewer than this many signals are excluded from the '
                             'training data')

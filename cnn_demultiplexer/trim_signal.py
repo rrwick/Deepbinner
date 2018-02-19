@@ -1,13 +1,10 @@
 
 import numpy as np
 
-
-initial_trim_size = 10
-trim_increment = 25
-stdev_threshold = 20
-
-look_forward_windows = 4
-window_count_threshold = 3
+"""
+This file takes care of trimming read signals to remove open pore signal before/after a read's
+start/end. It's all fairly ad hoc and could use some more attention later.
+"""
 
 
 class CannotTrim(IndexError):
@@ -48,14 +45,18 @@ def clean_signal(start_signal, end_signal, signal_size, plot):
     # Plot the resulting signal (for debugging)
     if plot:
         import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(12, 5))
+
+        fig.add_subplot(2, 1, 1)
         plt.plot(start_signal)
         if good_start:
             plt.axvspan(start_trim_pos, start_trim_pos + signal_size, alpha=0.2, color='red')
-        plt.show()
 
+        fig.add_subplot(2, 1, 2)
         plt.plot(end_signal)
         if good_end:
             plt.axvspan(end_trim_pos - signal_size, end_trim_pos, alpha=0.2, color='red')
+
         plt.show()
 
     trimmed_start = ','.join(str(x) for x in trimmed_start)
@@ -69,6 +70,12 @@ def find_signal_start_pos(signal):
     Given a signal, this function attempts to identify the approximate position where the open
     pore signal ends and the real signal begins.
     """
+    initial_trim_size = 10
+    trim_increment = 25
+    stdev_threshold = 20
+    look_forward_windows = 4
+    window_count_threshold = 4
+
     # Always trim off the first few bases as these are often dodgy.
     pos = initial_trim_size
 
@@ -76,9 +83,9 @@ def find_signal_start_pos(signal):
     #  1. the next window has a high stdev
     #  2. enough of the other upcoming windows have a high stdev
     while True:
-        next_window_stdev = get_window_stdev(signal, pos, 0)
+        next_window_stdev = get_window_stdev(signal, pos, 0, trim_increment)
         if next_window_stdev > stdev_threshold:
-            upcoming_window_stdevs = [get_window_stdev(signal, pos, i)
+            upcoming_window_stdevs = [get_window_stdev(signal, pos, i, trim_increment)
                                       for i in range(look_forward_windows)]
             num_high_stdevs = sum(1 if x > stdev_threshold else 0
                                   for x in upcoming_window_stdevs)
@@ -87,16 +94,30 @@ def find_signal_start_pos(signal):
         pos += trim_increment
 
 
-def get_window_stdev(signal, current_pos, window_num):
-    window_start = current_pos + (window_num * trim_increment)
-    window_end = window_start + trim_increment
-    if window_end > len(signal):
-        raise CannotTrim
-    return np.std(signal[window_start:window_end])
-
-
 def find_signal_end_pos(signal):
     """
     This does the same thing as find_signal_start_pos, but for the end of the read.
     """
     return len(signal) - find_signal_start_pos(signal[::-1])
+
+
+def get_window_stdev(signal, current_pos, window_num, increment):
+    window_start = current_pos + (window_num * increment)
+    window_end = window_start + increment
+    if window_end > len(signal):
+        raise CannotTrim
+    return np.std(signal[window_start:window_end])
+
+
+def too_much_open_pore(signal):
+    """
+    This function returns True if too much of the signal has a low standard deviation.
+    """
+    window_size = 100
+    stdev_threshold = 30
+    fraction = 0.25
+
+    window_count = int(len(signal) / window_size)
+    window_stdevs = [get_window_stdev(signal, 0, i, window_size) for i in range(window_count)]
+    num_low_stdevs = sum(1 if x < stdev_threshold else 0 for x in window_stdevs)
+    return num_low_stdevs / window_count > fraction
