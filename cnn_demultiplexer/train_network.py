@@ -14,7 +14,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = classic_cnn_with_bottlenecks(inputs, class_count)
+    predictions = classic_cnn(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
@@ -34,12 +34,12 @@ def train(args):
 
     training_signals, training_labels = augment_data(training_signals, training_labels,
                                                      args.signal_size, class_count,
-                                                     augmentation_factor=3)
+                                                     augmentation_factor=1)
 
     training_signals = np.expand_dims(training_signals, axis=2)
     validation_signals = np.expand_dims(validation_signals, axis=2)
 
-    model.compile(optimizer='rmsprop',
+    model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
@@ -53,9 +53,11 @@ def train(args):
     elapsed_minutes = (after_time - before_time) / 60
 
     print('\n')
-    print('Final validation loss:    ', '%.4f' % hist.history['val_loss'][-1])
-    print('Final validation accuracy:', '%.4f' % hist.history['val_acc'][-1])
-    print('Training time (minutes):  ', '%.2f' % elapsed_minutes)
+    print('Final val loss:            ', '%.4f' % hist.history['val_loss'][-1])
+    print('Final val accuracy:        ', '%.4f' % hist.history['val_acc'][-1])
+    print('Mean 5 lowest val accuracy:',
+          '%.4f' % np.mean(sorted(hist.history['val_acc'][:5])))
+    print('Training time (minutes):   ', '%.2f' % elapsed_minutes)
 
     time_model_prediction(model, validation_signals)
 
@@ -124,7 +126,7 @@ def time_model_prediction(model, signals):
         elapsed_milliseconds = (after_time - before_time) * 1000
         milliseconds_per_read = elapsed_milliseconds / len(signals)
         min_time = min(min_time, milliseconds_per_read)
-    print('Prediction time (ms/read):', '%.4f' % min_time)
+    print('Prediction time (ms/read): ', '%.4f' % min_time)
 
 
 def save_history_to_file(out_prefix, history):
@@ -146,7 +148,7 @@ def save_history_to_file(out_prefix, history):
 
 def augment_data(signals, labels, signal_size, class_count, augmentation_factor):
     print()
-    if augmentation_factor == 1:
+    if augmentation_factor <= 1:
         print('Not performing data augmentation')
         return signals, labels
 
