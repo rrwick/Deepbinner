@@ -14,7 +14,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = classic_cnn(inputs, class_count)
+    predictions = build_random_network(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
@@ -55,8 +55,8 @@ def train(args):
     print('\n')
     print('Final val loss:            ', '%.4f' % hist.history['val_loss'][-1])
     print('Final val accuracy:        ', '%.4f' % hist.history['val_acc'][-1])
-    print('Mean 5 lowest val accuracy:',
-          '%.4f' % np.mean(sorted(hist.history['val_acc'][:5])))
+    print('Mean 5 highest val acc:    ',
+          '%.4f' % np.mean(sorted(hist.history['val_acc'][-5:])))
     print('Training time (minutes):   ', '%.2f' % elapsed_minutes)
 
     time_model_prediction(model, validation_signals)
