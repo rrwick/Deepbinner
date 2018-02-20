@@ -57,7 +57,7 @@ def train(args):
     print('Final validation accuracy:', '%.4f' % hist.history['val_acc'][-1])
     print('Training time (minutes):  ', '%.2f' % elapsed_minutes)
 
-    time_model_prediction(model, signals)
+    time_model_prediction(model, validation_signals)
 
     model.save(args.out_prefix + '_model')
     save_history_to_file(args.out_prefix, hist.history)
