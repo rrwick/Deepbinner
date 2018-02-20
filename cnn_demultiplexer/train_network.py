@@ -156,31 +156,33 @@ def augment_data(signals, labels, signal_size, class_count, augmentation_factor)
     augmented_signals = np.empty([augmented_data_count, signal_size], dtype=float)
     augmented_labels = np.empty([augmented_data_count, class_count], dtype=float)
 
-    i = 0
+    i, j = 0, 0
     for signal, label in zip(signals, labels):
         augmented_signals[i] = signal
         augmented_labels[i] = label
-        if i % 1000 == 0:
-            print('.', end='', flush=True)
         i += 1
         for _ in range(augmentation_factor-1):
             augmented_signals[i] = modify_signal(signal)
             augmented_labels[i] = label
             i += 1
+        if j % 1000 == 0:
+            print('.', end='', flush=True)
+        j += 1
 
     assert i == augmented_data_count
 
+    print('done')
     print()
-    print('  final training data:', len(augmented_signals), 'samples')
+    print('Final training data:', len(augmented_signals), 'samples')
     print()
 
     # Plot signals (for debugging)
-    for signal in augmented_signals:
-        import matplotlib.pyplot as plt
-        fig = plt.figure(figsize=(12, 5))
-        fig.add_subplot(1, 1, 1)
-        plt.plot(signal)
-        plt.show()
+    # for signal in augmented_signals:
+    #     import matplotlib.pyplot as plt
+    #     fig = plt.figure(figsize=(12, 5))
+    #     fig.add_subplot(1, 1, 1)
+    #     plt.plot(signal)
+    #     plt.show()
 
     return augmented_signals, augmented_labels
 
