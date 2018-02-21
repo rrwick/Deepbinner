@@ -75,8 +75,8 @@ def build_random_network(inputs, class_count):
     x = inputs
 
     # Add the convolutional layers, which reduce the size of the data but add filters.
-    filters = random.choice([2, 4, 8, 16, 32, 64])
-    for _ in range(random.randint(1, 8)):
+    filters = random.randint(8, 48)
+    for _ in range(random.randint(3, 8)):
         remaining_dims = x.shape[1]
 
         # Randomly choose one of the dimension-reducing layers/groups.
@@ -103,15 +103,15 @@ def build_random_network(inputs, class_count):
             print('  BatchNormalization()(x)'.format(dropout_frac))
             x = BatchNormalization()(x)
 
-        if random.random() < 0.33333:
+        if random.random() < 0.66667:
             # Add a dropout layer.
-            dropout_frac = random.uniform(0.0, 0.5)
+            dropout_frac = random.uniform(0.0, 0.2)
             print('  Dropout(rate={})(x)'.format(dropout_frac))
             x = Dropout(rate=dropout_frac)(x)
 
         if random.random() < 0.33333:
             # Add a noise layer.
-            noise_level = random.uniform(0.0, 0.5)
+            noise_level = random.uniform(0.0, 0.1)
             print('  GaussianNoise(stddev={})(x)'.format(noise_level))
             x = GaussianNoise(stddev=noise_level)(x)
 
@@ -128,10 +128,16 @@ def build_random_network(inputs, class_count):
     x = Flatten()(x)
 
     # Add some fully connected layers.
-    for _ in range(random.randint(0, 5)):
-        count = int(random.uniform(1, 30) ** 2)
+    for _ in range(random.randint(1, 4)):
+        count = int(random.uniform(2, 20) ** 2)
         print("  Dense({}, activation='relu')(x)".format(count))
         x = Dense(count, activation='relu')(x)
+
+    if random.random() < 0.66667:
+        # Add a dropout layer.
+        dropout_frac = random.uniform(0.0, 0.2)
+        print('  Dropout(rate={})(x)'.format(dropout_frac))
+        x = Dropout(rate=dropout_frac)(x)
 
     # Connect to the final classes.
     print("  Dense({}, activation='softmax')(x)".format(class_count))
