@@ -3,10 +3,9 @@ import random
 import time
 import numpy as np
 
-from keras.layers import Input, Dense, Dropout, Flatten
+from keras.layers import Input
 from keras.models import Model
-from .network_architecture import classic_cnn, classic_cnn_with_bottlenecks, inception_network, \
-    build_random_network
+from .network_architecture import build_random_network
 
 
 def train(args):
@@ -50,19 +49,30 @@ def train(args):
                      shuffle=True,
                      validation_data=(validation_signals, validation_labels))
     after_time = time.time()
-    elapsed_minutes = (after_time - before_time) / 60
+    training_time_minutes = (after_time - before_time) / 60
+
+    final_acc = hist.history['acc'][-1]
+    final_val_acc = hist.history['val_acc'][-1]
+    mean_5_best_acc = np.mean(sorted(hist.history['acc'][-5:]))
+    mean_5_best_val_acc = np.mean(sorted(hist.history['val_acc'][-5:]))
+    prediction_time_ms = time_model_prediction(model, validation_signals)
 
     print('\n')
-    print('Final val loss:            ', '%.4f' % hist.history['val_loss'][-1])
-    print('Final val accuracy:        ', '%.4f' % hist.history['val_acc'][-1])
-    print('Mean 5 highest val acc:    ',
-          '%.4f' % np.mean(sorted(hist.history['val_acc'][-5:])))
-    print('Training time (minutes):   ', '%.2f' % elapsed_minutes)
+    print('\t'.join(['final_acc',
+                     'final_val_acc',
+                     'mean_5_best_acc',
+                     'mean_5_best_val_acc',
+                     'training_time_minutes',
+                     'prediction_time_ms']))
+    print('\t'.join(['%.4f' % final_acc,
+                     '%.4f' % final_val_acc,
+                     '%.4f' % mean_5_best_acc,
+                     '%.4f' % mean_5_best_val_acc,
+                     '%.4f' % training_time_minutes,
+                     '%.4f' % prediction_time_ms]))
 
-    time_model_prediction(model, validation_signals)
-
-    model.save(args.out_prefix + '_model')
-    save_history_to_file(args.out_prefix, hist.history)
+    # model.save(args.out_prefix + '_model')
+    # save_history_to_file(args.out_prefix, hist.history)
     print()
 
 
@@ -126,7 +136,7 @@ def time_model_prediction(model, signals):
         elapsed_milliseconds = (after_time - before_time) * 1000
         milliseconds_per_read = elapsed_milliseconds / len(signals)
         min_time = min(min_time, milliseconds_per_read)
-    print('Prediction time (ms/read): ', '%.4f' % min_time)
+    return min_time
 
 
 def save_history_to_file(out_prefix, history):

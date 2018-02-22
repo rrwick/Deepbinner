@@ -82,17 +82,17 @@ def build_random_network(inputs, class_count):
         # Randomly choose one of the dimension-reducing layers/groups.
         group_type = random.choice(['stride', 'double_max', 'triple_max', 'inception'])
         if group_type == 'stride' and remaining_dims >= 3:
-            print('  single_3_conv_with_2_stride(x, filters={})'.format(filters))
+            print('single_3_conv_with_2_stride(x, filters={})'.format(filters))
             x = single_3_conv_with_2_stride(x, filters=filters)
         if group_type == 'double_max' and remaining_dims >= 6:
-            print('  double_3_conv_with_max_pooling(x, filters={}, pool_size=2)'.format(filters))
+            print('double_3_conv_with_max_pooling(x, filters={}, pool_size=2)'.format(filters))
             x = double_3_conv_with_max_pooling(x, filters=filters, pool_size=2)
         if group_type == 'triple_max' and remaining_dims >= 8:
-            print('  triple_3_conv_with_max_pooling(x, filters={}, pool_size=2)'.format(filters))
+            print('triple_3_conv_with_max_pooling(x, filters={}, pool_size=2)'.format(filters))
             x = triple_3_conv_with_max_pooling(x, filters=filters, pool_size=2)
         if group_type == 'inception':
             bottleneck_filters = random.randint(2, filters)
-            print('  inception_module_with_max_pooling(x, conv_filters={}, bottleneck_filters={}, '
+            print('inception_module_with_max_pooling(x, conv_filters={}, bottleneck_filters={}, '
                   'pool_size=2)'.format(filters, bottleneck_filters))
             x = inception_module_with_max_pooling(x, conv_filters=filters,
                                                   bottleneck_filters=bottleneck_filters,
@@ -100,31 +100,31 @@ def build_random_network(inputs, class_count):
         if random.random() < 0.33333:
             # Add a batch normalization layer.
             dropout_frac = random.uniform(0.0, 0.5)
-            print('  BatchNormalization()(x)'.format(dropout_frac))
+            print('BatchNormalization()(x)'.format(dropout_frac))
             x = BatchNormalization()(x)
 
         if random.random() < 0.66667:
             # Add a dropout layer.
             dropout_frac = random.uniform(0.0, 0.2)
-            print('  Dropout(rate={})(x)'.format(dropout_frac))
+            print('Dropout(rate={})(x)'.format(dropout_frac))
             x = Dropout(rate=dropout_frac)(x)
 
         if random.random() < 0.33333:
             # Add a noise layer.
             noise_level = random.uniform(0.0, 0.1)
-            print('  GaussianNoise(stddev={})(x)'.format(noise_level))
+            print('GaussianNoise(stddev={})(x)'.format(noise_level))
             x = GaussianNoise(stddev=noise_level)(x)
 
         if random.random() < 0.33333:
             # Add a bottleneck layer.
             bottleneck_filters = random.randint(2, filters)
-            print('  bottleneck(x, filters={})'.format(bottleneck_filters))
+            print('bottleneck(x, filters={})'.format(bottleneck_filters))
             x = bottleneck(x, filters=bottleneck_filters)
 
         # Increase the filters for the next round.
         filters *= int(random.uniform(1.0, 2.5))
 
-    print('  Flatten()(x)')
+    print('Flatten()(x)')
     x = Flatten()(x)
 
     # Add some fully connected layers.
@@ -136,7 +136,7 @@ def build_random_network(inputs, class_count):
     if random.random() < 0.66667:
         # Add a dropout layer.
         dropout_frac = random.uniform(0.0, 0.2)
-        print('  Dropout(rate={})(x)'.format(dropout_frac))
+        print('Dropout(rate={})(x)'.format(dropout_frac))
         x = Dropout(rate=dropout_frac)(x)
 
     # Connect to the final classes.
