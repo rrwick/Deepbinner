@@ -130,7 +130,7 @@ def build_random_network(inputs, class_count):
     # Add some fully connected layers.
     for _ in range(random.randint(1, 4)):
         count = int(random.uniform(2, 20) ** 2)
-        print("  Dense({}, activation='relu')(x)".format(count))
+        print("Dense({}, activation='relu')(x)".format(count))
         x = Dense(count, activation='relu')(x)
 
     if random.random() < 0.66667:
@@ -140,7 +140,7 @@ def build_random_network(inputs, class_count):
         x = Dropout(rate=dropout_frac)(x)
 
     # Connect to the final classes.
-    print("  Dense({}, activation='softmax')(x)".format(class_count))
+    print("Dense({}, activation='softmax')(x)".format(class_count))
     x = Dense(class_count, activation='softmax')(x)
 
     print()
