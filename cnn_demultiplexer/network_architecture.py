@@ -1,7 +1,7 @@
 
 import random
 from keras.layers import Dense, Conv1D, MaxPooling1D, AveragePooling1D, Dropout, Flatten, \
-    concatenate, BatchNormalization, GaussianNoise
+    concatenate, BatchNormalization, GaussianNoise, GlobalAveragePooling1D, Softmax
 from keras.models import Model
 
 
@@ -47,7 +47,7 @@ def build_random_network_2(inputs, class_count):
     while True:
         need_to_pool = True
 
-        # Add a convolutional group that is either an parallel (inception-like) module...
+        # Add a convolutional group that is either a parallel (inception-like) module...
         if random.random() < 0.25:
             bottleneck_filters = random.randint(4, filters)
             x = add_parallel_module(x, filters, bottleneck_filters)
@@ -68,7 +68,7 @@ def build_random_network_2(inputs, class_count):
                     need_to_pool = False
                 x = add_conv_layer(x, filters, kernel_size, stride, dilation)
 
-        # Reduce the data's dimension by pooling (only necessary if we didn't use a higher stride).
+        # If we didn't reduce the data's dimension with a stride, do so now with pooling.
         if need_to_pool:
             pool_size = random.randint(2, 3)
             if random.random() < 0.8:
@@ -76,53 +76,58 @@ def build_random_network_2(inputs, class_count):
             else:
                 x = add_average_pooling_layer(x, pool_size)
 
+        # Possibly add one or more optional layers after the convolutional group.
         if random.random() < 0.33333:
             x = add_normalization_layer(x)
-
         if random.random() < 0.66667:
             x = add_dropout_layer(x, random.uniform(0.0, 0.15))
-
         if random.random() < 0.33333:
             x = add_noise_layer(x, random.uniform(0.0, 0.05))
-
         if random.random() < 0.33333:
             bottleneck_filters = random.randint(4, int(filters * 0.8))
             x = add_bottleneck_layer(x, bottleneck_filters)
 
         # We continue adding convolutional groups until the dimensions are sufficiently small.
-        dimension = x.shape[1]
-        if dimension < 5:
+        dimension = int(x.shape[1])
+        if random.uniform(0.0, dimension) < 5.0:
             break
-        elif dimension < 10:
-            if random.random() < 0.75:
-                break
-        elif dimension < 20:
-            if random.random() < 0.5:
-                break
-        elif dimension < 30:
-            if random.random() < 0.25:
-                break
 
         # Increase the filters for the next round.
         filters = int(filters * random.uniform(1.25, 2.5))
 
     print()
-    x = add_flatten_layer(x)
 
-    # Add some fully connected layers.
-    print()
-    print('# Fully connected layers')
-    for _ in range(random.randint(1, 3)):
-        count = int(random.uniform(3, 15) ** 2)
-        x = add_dense_layer(x, count)
+    # Finish the network in two possible ways:
+    # option 1: the traditional method of flattening followed by dense layers
+    if random.random() < 0.5:
+        print('# Finishing with dense layers')
+        x = add_flatten_layer(x)
 
-    # Maybe add a final dropout layer.
-    if random.random() < 0.66667:
-        x = add_dropout_layer(x, random.uniform(0.0, 0.2))
+        print()
+        print('# Fully connected layers')
+        for _ in range(random.randint(1, 3)):
+            count = int(random.uniform(3, 15) ** 2)
+            x = add_dense_layer(x, count)
 
-    print()
-    print('# Final layer to output classes')
-    x = add_final_dense_layer(x, class_count)
+        # Maybe add a final dropout layer.
+        if random.random() < 0.66667:
+            x = add_dropout_layer(x, random.uniform(0.0, 0.2))
+
+        print()
+        print('# Final layer to output classes')
+        x = add_final_dense_layer(x, class_count)
+
+    # option 2: global average pooling directly to the output classes
+    else:
+        print('# Finishing with global average pooling')
+        print("x = Conv1D(filters={}, kernel_size=1, activation='relu')(x)".format(class_count))
+        x = Conv1D(filters=class_count, kernel_size=1, activation='relu')(x)
+        print('# shape = ' + str(x.shape))
+        print('x = GlobalAveragePooling1D()(x)')
+        x = GlobalAveragePooling1D()(x)
+        print('x = Softmax()(x)')
+        x = Softmax()(x)
+        print('# shape = ' + str(x.shape))
 
     return x
 
