@@ -15,9 +15,9 @@ def build_random_network(inputs, class_count):
             if params <= max_allowed_parameters:
                 break
             else:
-                print('\nTOO MANY PARAMETERS ({})\nTRYING AGAIN\n'.format(params))
+                print('\nTOO MANY PARAMETERS ({})\nTRYING AGAIN\n\n\n'.format(params))
         except ValueError:
-            print('\nFAILED DUE TO SMALL DATA DIMENSION\nTRYING AGAIN\n')
+            print('\nFAILED DUE TO SMALL DATA DIMENSION\nTRYING AGAIN\n\n\n')
             pass
     return x
 
@@ -35,7 +35,7 @@ def build_random_network_2(inputs, class_count):
 
     # Maybe add an average pooling layer. If strides == 1, this will just serve to smooth the data.
     # If strides > 1, this will downscale the data too.
-    if random.random() < 0.3:
+    if random.random() < 0.25:
         print()
         pool_size = random.randint(2, 3)
         strides = random.randint(1, pool_size)
@@ -45,33 +45,36 @@ def build_random_network_2(inputs, class_count):
     filters = random.randint(8, 48)
 
     while True:
+        need_to_pool = True
 
-        # Add a convolutional group that is either an inception module:
+        # Add a convolutional group that is either an parallel (inception-like) module...
         if random.random() < 0.25:
             bottleneck_filters = random.randint(4, filters)
-            x = add_inception_module(x, filters, bottleneck_filters)
+            x = add_parallel_module(x, filters, bottleneck_filters)
 
         # ...or just a stack of convolutional layers.
         else:
-            conv_count = random.choice([1, 2, 2, 2, 3, 3, 3, 4, 5])
+            conv_count = random.choice([1, 2, 3, 4])
             print()
             print('# Convolutional group of {} layer{}'.format(conv_count,
                                                                '' if conv_count == 1 else 's'))
             for _ in range(conv_count):
-                kernel_size = random.choice([2, 3, 3, 3, 3, 3, 3, 4, 5])
-                stride = random.choice([1, 1, 1, 1, 2])
+                kernel_size = random.choice([3, 3, 3, 3, 3, 5, 5, 5, 7, 9])
+                stride = random.choice([1, 1, 1, 1, 1, 1, 2, 2, 3])
                 if stride == 1:
-                    dilation = random.choice([1, 1, 1, 1, 1, 1, 2, 3])
+                    dilation = random.choice([1, 1, 1, 1, 1, 1, 2, 2, 3])
                 else:
                     dilation = 1
+                    need_to_pool = False
                 x = add_conv_layer(x, filters, kernel_size, stride, dilation)
 
-        # Reduce the data's dimension by pooling.
-        pool_size = random.randint(2, 3)
-        if random.random() < 0.8:
-            x = add_max_pooling_layer(x, pool_size)
-        else:
-            x = add_average_pooling_layer(x, pool_size)
+        # Reduce the data's dimension by pooling (only necessary if we didn't use a higher stride).
+        if need_to_pool:
+            pool_size = random.randint(2, 3)
+            if random.random() < 0.8:
+                x = add_max_pooling_layer(x, pool_size)
+            else:
+                x = add_average_pooling_layer(x, pool_size)
 
         if random.random() < 0.33333:
             x = add_normalization_layer(x)
@@ -83,7 +86,7 @@ def build_random_network_2(inputs, class_count):
             x = add_noise_layer(x, random.uniform(0.0, 0.05))
 
         if random.random() < 0.33333:
-            bottleneck_filters = random.randint(4, filters)
+            bottleneck_filters = random.randint(4, int(filters * 0.8))
             x = add_bottleneck_layer(x, bottleneck_filters)
 
         # We continue adding convolutional groups until the dimensions are sufficiently small.
@@ -109,7 +112,7 @@ def build_random_network_2(inputs, class_count):
     # Add some fully connected layers.
     print()
     print('# Fully connected layers')
-    for _ in range(random.randint(1, 4)):
+    for _ in range(random.randint(1, 3)):
         count = int(random.uniform(3, 15) ** 2)
         x = add_dense_layer(x, count)
 
@@ -202,44 +205,59 @@ def add_conv_layer(x, filters, kernel_size, strides, dilation_rate):
     return x
 
 
-def add_inception_module(x, conv_filters, bottleneck_filters):
+def add_parallel_module(x, conv_filters, bottleneck_filters):
     """
-    Based on the 'Inception V3' description given here:
+    Loosely based on the inception descriptions given here:
         https://towardsdatascience.com/neural-network-architectures-156e5bad51ba
     And illustrated here:
         https://cdn-images-1.medium.com/max/1600/0*SJ7DP_-0R1vdpVzv.jpg
     """
     print()
-    print('# Inception module')
-    print("x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)")
-    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
-    print("x1 = Conv1D(filters={}, kernel_size=1, padding='same', "
-          "activation='relu')(x1)".format(conv_filters))
-    x1 = Conv1D(filters=conv_filters, kernel_size=1, padding='same', activation='relu')(x1)
+    print('# Parallel module')
 
-    print("x2 = Conv1D(filters={}, kernel_size=1, padding='same', "
-          "activation='relu')(x)".format(conv_filters))
-    x2 = Conv1D(filters=conv_filters, kernel_size=1, padding='same', activation='relu')(x)
+    # This parallel module will include 2, 3 or 4 parts.
+    parts_to_include = set(random.sample([1, 2, 3, 4], random.randint(2, 4)))
+    parts_to_concatenate = []
+    parts_to_concatenate_str = []
 
-    print("x3 = Conv1D(filters={}, kernel_size=1, padding='same', "
-          "activation='relu')(x)".format(bottleneck_filters))
-    x3 = Conv1D(filters=bottleneck_filters, kernel_size=1, padding='same', activation='relu')(x)
-    print("x3 = Conv1D(filters={}, kernel_size=3, padding='same', "
-          "activation='relu')(x3)".format(conv_filters))
-    x3 = Conv1D(filters=conv_filters, kernel_size=3, padding='same', activation='relu')(x3)
+    if 1 in parts_to_include:
+        print("x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)")
+        x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+        print("x1 = Conv1D(filters={}, kernel_size=1, padding='same', "
+              "activation='relu')(x1)".format(conv_filters))
+        x1 = Conv1D(filters=conv_filters, kernel_size=1, padding='same', activation='relu')(x1)
+        parts_to_concatenate.append(x1)
+        parts_to_concatenate_str.append('x1')
 
-    print("x4 = Conv1D(filters={}, kernel_size=1, padding='same', "
-          "activation='relu')(x)".format(bottleneck_filters))
-    x4 = Conv1D(filters=bottleneck_filters, kernel_size=1, padding='same', activation='relu')(x)
-    print("x4 = Conv1D(filters={}, kernel_size=3, padding='same', "
-          "activation='relu')(x4)".format(conv_filters))
-    x4 = Conv1D(filters=conv_filters, kernel_size=3, padding='same', activation='relu')(x4)
-    print("x4 = Conv1D(filters={}, kernel_size=3, padding='same', "
-          "activation='relu')(x4)".format(conv_filters))
-    x4 = Conv1D(filters=conv_filters, kernel_size=3, padding='same', activation='relu')(x4)
+    if 2 in parts_to_include:
+        print("x2 = Conv1D(filters={}, kernel_size=1, padding='same', "
+              "activation='relu')(x)".format(conv_filters))
+        x2 = Conv1D(filters=conv_filters, kernel_size=1, padding='same', activation='relu')(x)
+        parts_to_concatenate.append(x2)
+        parts_to_concatenate_str.append('x2')
 
-    print("x = concatenate([x1, x2, x3, x4], axis=2)")
-    x = concatenate([x1, x2, x3, x4], axis=2)
+    if 3 in parts_to_include:
+        print("x3 = Conv1D(filters={}, kernel_size=1, padding='same', "
+              "activation='relu')(x)".format(bottleneck_filters))
+        x3 = Conv1D(filters=bottleneck_filters, kernel_size=1, padding='same', activation='relu')(x)
+        print("x3 = Conv1D(filters={}, kernel_size=3, padding='same', "
+              "activation='relu')(x3)".format(conv_filters))
+        x3 = Conv1D(filters=conv_filters, kernel_size=3, padding='same', activation='relu')(x3)
+        parts_to_concatenate.append(x3)
+        parts_to_concatenate_str.append('x3')
+
+    if 4 in parts_to_include:
+        print("x4 = Conv1D(filters={}, kernel_size=1, padding='same', "
+              "activation='relu')(x)".format(bottleneck_filters))
+        x4 = Conv1D(filters=bottleneck_filters, kernel_size=1, padding='same', activation='relu')(x)
+        print("x4 = Conv1D(filters={}, kernel_size=5, padding='same', "
+              "activation='relu')(x4)".format(conv_filters))
+        x4 = Conv1D(filters=conv_filters, kernel_size=5, padding='same', activation='relu')(x4)
+        parts_to_concatenate.append(x4)
+        parts_to_concatenate_str.append('x4')
+
+    print('x = concatenate([{}], axis=2)'.format(', '.join(parts_to_concatenate_str)))
+    x = concatenate(parts_to_concatenate, axis=2)
 
     return x
 
