@@ -15,9 +15,9 @@ def build_random_network(inputs, class_count):
             if params <= max_allowed_parameters:
                 break
             else:
-                print('\nTOO MANY PARAMETERS ({})\nTRYING AGAIN\n\n\n'.format(params))
+                print('\nTOO MANY PARAMETERS ({})\nTRYING AGAIN\n\n\n\n'.format(params))
         except ValueError:
-            print('\nFAILED DUE TO SMALL DATA DIMENSION\nTRYING AGAIN\n\n\n')
+            print('\nFAILED DUE TO SMALL DATA DIMENSION\nTRYING AGAIN\n\n\n\n')
             pass
     return x
 
@@ -44,6 +44,10 @@ def build_random_network_2(inputs, class_count):
     # Decide on a starting number of filters. This will grow over the convolutional groups
     filters = random.randint(8, 48)
 
+    max_pooling_count, average_pooling_count, stride_count = 0, 0, 0
+    parallel_module_count, serial_module_count = 0, 0
+    normalisation_count, bottleneck_count = 0, 0
+    serial_module_layer_count, kernel_size_sum = 0, 0
     while True:
         need_to_pool = True
 
@@ -51,34 +55,48 @@ def build_random_network_2(inputs, class_count):
         if random.random() < 0.25:
             bottleneck_filters = random.randint(4, filters)
             x = add_parallel_module(x, filters, bottleneck_filters)
+            parallel_module_count += 1
 
         # ...or just a stack of convolutional layers.
         else:
             conv_count = random.choice([1, 2, 3, 4])
+            serial_module_count += 1
+            serial_module_layer_count += conv_count
             print()
             print('# Convolutional group of {} layer{}'.format(conv_count,
                                                                '' if conv_count == 1 else 's'))
-            for _ in range(conv_count):
-                kernel_size = random.choice([3, 3, 3, 3, 3, 5, 5, 5, 7, 9])
-                stride = random.choice([1, 1, 1, 1, 1, 1, 2, 2, 3])
+            for i in range(conv_count):
+                kernel_size = random.choice([3, 3, 3, 3, 3, 3, 4, 4, 5, 5, 6, 7, 8, 9])
+                kernel_size_sum += kernel_size
+
+                # The last convolutional layer in the group may get a stride of more than one which
+                # will serve to reduce the data's dimensions (in place of a pooling layer).
+                if i == conv_count - 1:
+                    stride = random.choice([1, 1, 1, 2, 2, 3])
+                else:
+                    stride = 1
                 if stride == 1:
                     dilation = random.choice([1, 1, 1, 1, 1, 1, 2, 2, 3])
                 else:
                     dilation = 1
                     need_to_pool = False
+                    stride_count += 1
                 x = add_conv_layer(x, filters, kernel_size, stride, dilation)
 
         # If we didn't reduce the data's dimension with a stride, do so now with pooling.
         if need_to_pool:
-            pool_size = random.randint(2, 3)
+            pool_size = random.choice([2, 2, 3])
             if random.random() < 0.8:
                 x = add_max_pooling_layer(x, pool_size)
+                max_pooling_count += 1
             else:
                 x = add_average_pooling_layer(x, pool_size)
+                average_pooling_count += 1
 
         # Possibly add one or more optional layers after the convolutional group.
         if random.random() < 0.33333:
             x = add_normalization_layer(x)
+            normalisation_count += 1
         if random.random() < 0.66667:
             x = add_dropout_layer(x, random.uniform(0.0, 0.15))
         if random.random() < 0.33333:
@@ -86,6 +104,7 @@ def build_random_network_2(inputs, class_count):
         if random.random() < 0.33333:
             bottleneck_filters = random.randint(4, int(filters * 0.8))
             x = add_bottleneck_layer(x, bottleneck_filters)
+            bottleneck_count += 1
 
         # We continue adding convolutional groups until the dimensions are sufficiently small.
         dimension = int(x.shape[1])
@@ -96,9 +115,11 @@ def build_random_network_2(inputs, class_count):
         filters = int(filters * random.uniform(1.25, 2.5))
 
     print()
+    dimension_before_finishing = int(x.shape[1])
 
     # Finish the network in two possible ways:
     # option 1: the traditional method of flattening followed by dense layers
+    dense_count = 0
     if random.random() < 0.5:
         print('# Finishing with dense layers')
         x = add_flatten_layer(x)
@@ -108,6 +129,7 @@ def build_random_network_2(inputs, class_count):
         for _ in range(random.randint(1, 3)):
             count = int(random.uniform(3, 15) ** 2)
             x = add_dense_layer(x, count)
+            dense_count += 1
 
         # Maybe add a final dropout layer.
         if random.random() < 0.66667:
@@ -116,6 +138,7 @@ def build_random_network_2(inputs, class_count):
         print()
         print('# Final layer to output classes')
         x = add_final_dense_layer(x, class_count)
+        dense_count += 1
 
     # option 2: global average pooling directly to the output classes
     else:
@@ -128,6 +151,31 @@ def build_random_network_2(inputs, class_count):
         print('x = Softmax()(x)')
         x = Softmax()(x)
         print('# shape = ' + str(x.shape))
+
+    print('\nModel details:')
+    print('\t'.join(['Parallel_module_count',
+                     'Serial_module_count',
+                     'Serial_module_layer_count',
+                     'Mean_serial_kernal_size',
+                     'Max_pooling_count',
+                     'Average_pooling_count',
+                     'Stride_count',
+                     'Normalisation_count',
+                     'Bottleneck_count',
+                     'Dimension_before_finishing',
+                     'Dense_layer_count']))
+    print('\t'.join(str(x) for x in [parallel_module_count,
+                                     serial_module_count,
+                                     serial_module_layer_count,
+                                     kernel_size_sum / serial_module_layer_count,
+                                     max_pooling_count,
+                                     average_pooling_count,
+                                     stride_count,
+                                     normalisation_count,
+                                     bottleneck_count,
+                                     dimension_before_finishing,
+                                     dense_count]))
+    print()
 
     return x
 
