@@ -320,7 +320,7 @@ def add_parallel_module(x, conv_filters, bottleneck_filters):
     return x
 
 
-def random_80(inputs, class_count):
+def random_080(inputs, class_count):
     """
     This was the best performing network in my second batch of randomly-generated architectures.
     """
@@ -386,6 +386,279 @@ def random_80(inputs, class_count):
     x = Dense(150, activation='relu')(x)
     x = Dense(30, activation='relu')(x)
     x = Dense(244, activation='relu')(x)
+
+    x = Dense(class_count, activation='softmax')(x)
+
+    return x
+
+
+def random_339(inputs, class_count):
+    x = inputs
+
+    x = GaussianNoise(stddev=0.013397584943997)(x)
+
+    x = Conv1D(filters=21, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=21, kernel_size=9, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=21, kernel_size=3, strides=1, dilation_rate=2, activation='relu')(x)
+    x = Conv1D(filters=21, kernel_size=5, strides=3, dilation_rate=1, activation='relu')(x)
+
+    x = Conv1D(filters=38, kernel_size=5, strides=1, dilation_rate=3, activation='relu')(x)
+    x = AveragePooling1D(pool_size=3)(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.06957722835359469)(x)
+
+    x = GaussianNoise(stddev=0.01751778593490914)(x)
+
+    x = Conv1D(filters=21, kernel_size=1, activation='relu')(x)
+
+    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+    x1 = Conv1D(filters=79, kernel_size=1, padding='same', activation='relu')(x1)
+    x2 = Conv1D(filters=79, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=33, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=79, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=33, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=79, kernel_size=5, padding='same', activation='relu')(x4)
+    x = concatenate([x1, x2, x3, x4], axis=2)
+    x = AveragePooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.01512546661833562)(x)
+
+    x2 = Conv1D(filters=177, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=90, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=177, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=90, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=177, kernel_size=5, padding='same', activation='relu')(x4)
+    x = concatenate([x2, x3, x4], axis=2)
+    x = MaxPooling1D(pool_size=3)(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.09102278901817017)(x)
+
+    x = GaussianNoise(stddev=0.013956182085646474)(x)
+
+    x = Conv1D(filters=class_count, kernel_size=1, activation='relu')(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Softmax()(x)
+
+    return x
+
+
+def random_317(inputs, class_count):
+    x = inputs
+
+    x = GaussianNoise(stddev=0.0031280141265830064)(x)
+
+    x = Conv1D(filters=13, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=13, kernel_size=3, strides=3, dilation_rate=1, activation='relu')(x)
+
+    x = Dropout(rate=0.11511550791393513)(x)
+
+    x = Conv1D(filters=22, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=22, kernel_size=7, strides=1, dilation_rate=1, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.08801138466513796)(x)
+
+    x = GaussianNoise(stddev=0.01261906780937131)(x)
+
+    x = Conv1D(filters=34, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=34, kernel_size=3, strides=3, dilation_rate=1, activation='relu')(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.12827084537195393)(x)
+
+    x = Conv1D(filters=20, kernel_size=1, activation='relu')(x)
+
+    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+    x1 = Conv1D(filters=53, kernel_size=1, padding='same', activation='relu')(x1)
+    x2 = Conv1D(filters=53, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=27, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=53, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=27, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=53, kernel_size=5, padding='same', activation='relu')(x4)
+    x = concatenate([x1, x2, x3, x4], axis=2)
+    x = MaxPooling1D(pool_size=3)(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.07906722975035585)(x)
+
+    x = GaussianNoise(stddev=0.03146882316978832)(x)
+
+    x = Conv1D(filters=class_count, kernel_size=1, activation='relu')(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Softmax()(x)
+
+    return x
+
+
+def random_268(inputs, class_count):
+    x = inputs
+
+    x = AveragePooling1D(pool_size=3, strides=2)(x)
+
+    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+    x1 = Conv1D(filters=12, kernel_size=1, padding='same', activation='relu')(x1)
+    x3 = Conv1D(filters=8, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=12, kernel_size=3, padding='same', activation='relu')(x3)
+    x = concatenate([x1, x3], axis=2)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.0813733601425684)(x)
+
+    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+    x1 = Conv1D(filters=16, kernel_size=1, padding='same', activation='relu')(x1)
+    x2 = Conv1D(filters=16, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=5, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=16, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=5, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=16, kernel_size=5, padding='same', activation='relu')(x4)
+    x = concatenate([x1, x2, x3, x4], axis=2)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.003660480931626786)(x)
+
+    x = GaussianNoise(stddev=0.03471230181839424)(x)
+
+    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+    x1 = Conv1D(filters=23, kernel_size=1, padding='same', activation='relu')(x1)
+    x2 = Conv1D(filters=23, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=13, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=23, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=13, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=23, kernel_size=5, padding='same', activation='relu')(x4)
+    x = concatenate([x1, x2, x3, x4], axis=2)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.10725039245145246)(x)
+
+    x = GaussianNoise(stddev=0.014715698696223467)(x)
+
+    x = Conv1D(filters=35, kernel_size=5, strides=1, dilation_rate=2, activation='relu')(x)
+    x = Conv1D(filters=35, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=35, kernel_size=5, strides=1, dilation_rate=1, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.11214308791797134)(x)
+
+    x = Conv1D(filters=7, kernel_size=1, activation='relu')(x)
+
+    x = Conv1D(filters=65, kernel_size=3, strides=2, dilation_rate=1, activation='relu')(x)
+
+    x = BatchNormalization()(x)
+
+    x = Conv1D(filters=39, kernel_size=1, activation='relu')(x)
+
+    x = Conv1D(filters=101, kernel_size=3, strides=2, dilation_rate=1, activation='relu')(x)
+
+    x = BatchNormalization()(x)
+
+    x = Dropout(rate=0.10503228953536241)(x)
+
+    x = Conv1D(filters=class_count, kernel_size=1, activation='relu')(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Softmax()(x)
+
+    return x
+
+
+def random_381(inputs, class_count):
+    x = inputs
+
+    x = GaussianNoise(stddev=0.034004904336028596)(x)
+
+    x = Conv1D(filters=32, kernel_size=7, strides=1, dilation_rate=3, activation='relu')(x)
+    x = Conv1D(filters=32, kernel_size=9, strides=1, dilation_rate=2, activation='relu')(x)
+    x = Conv1D(filters=32, kernel_size=4, strides=2, dilation_rate=1, activation='relu')(x)
+
+    x = Dropout(rate=0.046497062241251906)(x)
+
+    x = Conv1D(filters=54, kernel_size=4, strides=1, dilation_rate=3, activation='relu')(x)
+    x = Conv1D(filters=54, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = MaxPooling1D(pool_size=3)(x)
+
+    x = Conv1D(filters=90, kernel_size=3, strides=2, dilation_rate=1, activation='relu')(x)
+
+    x = Dropout(rate=0.12339504634973077)(x)
+
+    x = GaussianNoise(stddev=0.006245761590158084)(x)
+
+    x = Conv1D(filters=120, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=120, kernel_size=5, strides=1, dilation_rate=1, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.09818212478538961)(x)
+
+    x = GaussianNoise(stddev=0.03623510126409917)(x)
+
+    x = Conv1D(filters=65, kernel_size=1, activation='relu')(x)
+
+    x = Conv1D(filters=class_count, kernel_size=1, activation='relu')(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Softmax()(x)
+
+    return x
+
+
+def random_217(inputs, class_count):
+    x = inputs
+
+    x = GaussianNoise(stddev=0.02800324054815674)(x)
+
+    x = AveragePooling1D(pool_size=2, strides=2)(x)
+
+    x = Conv1D(filters=23, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=23, kernel_size=5, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=23, kernel_size=3, strides=3, dilation_rate=1, activation='relu')(x)
+
+    x = Dropout(rate=0.12431498467028188)(x)
+
+    x = GaussianNoise(stddev=0.020629561240189956)(x)
+
+    x = Conv1D(filters=30, kernel_size=6, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=30, kernel_size=3, strides=1, dilation_rate=1, activation='relu')(x)
+    x = Conv1D(filters=30, kernel_size=3, strides=1, dilation_rate=2, activation='relu')(x)
+    x = Conv1D(filters=30, kernel_size=8, strides=1, dilation_rate=1, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.13875930485777344)(x)
+
+    x = GaussianNoise(stddev=0.010444263294661789)(x)
+
+    x = Conv1D(filters=23, kernel_size=1, activation='relu')(x)
+
+    x2 = Conv1D(filters=51, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=11, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=51, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=11, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=51, kernel_size=5, padding='same', activation='relu')(x4)
+    x = concatenate([x2, x3, x4], axis=2)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.11156457553830097)(x)
+
+    x = Conv1D(filters=118, kernel_size=3, strides=1, dilation_rate=3, activation='relu')(x)
+    x = Conv1D(filters=118, kernel_size=3, strides=3, dilation_rate=1, activation='relu')(x)
+
+    x = BatchNormalization()(x)
+
+    x = Conv1D(filters=19, kernel_size=1, activation='relu')(x)
+
+    x = Flatten()(x)
+
+    x = Dense(51, activation='relu')(x)
+    x = Dense(62, activation='relu')(x)
+    x = Dense(213, activation='relu')(x)
+
+    x = Dropout(rate=0.1564586327010344)(x)
 
     x = Dense(class_count, activation='softmax')(x)
 

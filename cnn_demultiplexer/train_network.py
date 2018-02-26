@@ -5,7 +5,8 @@ import numpy as np
 
 from keras.layers import Input
 from keras.models import Model
-from .network_architecture import build_random_network
+from .network_architecture import build_random_network, random_080, random_217, random_268, \
+    random_317, random_339, random_381
 
 
 def train(args):
@@ -13,7 +14,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = build_random_network(inputs, class_count)
+    predictions = random_080(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
@@ -33,7 +34,7 @@ def train(args):
 
     training_signals, training_labels = augment_data(training_signals, training_labels,
                                                      args.signal_size, class_count,
-                                                     augmentation_factor=1)
+                                                     augmentation_factor=3)
 
     training_signals = np.expand_dims(training_signals, axis=2)
     validation_signals = np.expand_dims(validation_signals, axis=2)
