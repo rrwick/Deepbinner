@@ -86,7 +86,7 @@ def build_random_network_2(inputs, class_count):
         # If we didn't reduce the data's dimension with a stride, do so now with pooling.
         if need_to_pool:
             pool_size = random.choice([2, 2, 3])
-            if random.random() < 0.8:
+            if random.random() < 0.9:
                 x = add_max_pooling_layer(x, pool_size)
                 max_pooling_count += 1
             else:
@@ -94,14 +94,14 @@ def build_random_network_2(inputs, class_count):
                 average_pooling_count += 1
 
         # Possibly add one or more optional layers after the convolutional group.
-        if random.random() < 0.33333:
+        if random.random() < 0.25:
             x = add_normalization_layer(x)
             normalisation_count += 1
         if random.random() < 0.66667:
             x = add_dropout_layer(x, random.uniform(0.0, 0.15))
         if random.random() < 0.33333:
             x = add_noise_layer(x, random.uniform(0.0, 0.05))
-        if random.random() < 0.33333:
+        if random.random() < 0.2:
             bottleneck_filters = random.randint(4, int(filters * 0.8))
             x = add_bottleneck_layer(x, bottleneck_filters)
             bottleneck_count += 1
@@ -126,7 +126,7 @@ def build_random_network_2(inputs, class_count):
 
         print()
         print('# Fully connected layers')
-        for _ in range(random.randint(1, 3)):
+        for _ in range(random.randint(0, 2)):
             count = int(random.uniform(3, 15) ** 2)
             x = add_dense_layer(x, count)
             dense_count += 1
