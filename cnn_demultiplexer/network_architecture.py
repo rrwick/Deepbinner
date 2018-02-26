@@ -152,11 +152,16 @@ def build_random_network_2(inputs, class_count):
         x = Softmax()(x)
         print('# shape = ' + str(x.shape))
 
+    try:
+        mean_serial_kernel_size = kernel_size_sum / serial_module_layer_count
+    except ZeroDivisionError:
+        mean_serial_kernel_size = 0
+
     print('\nModel details:')
     print('\t'.join(['Parallel_module_count',
                      'Serial_module_count',
                      'Serial_module_layer_count',
-                     'Mean_serial_kernal_size',
+                     'Mean_serial_kernel_size',
                      'Max_pooling_count',
                      'Average_pooling_count',
                      'Stride_count',
@@ -167,7 +172,7 @@ def build_random_network_2(inputs, class_count):
     print('\t'.join(str(x) for x in [parallel_module_count,
                                      serial_module_count,
                                      serial_module_layer_count,
-                                     kernel_size_sum / serial_module_layer_count,
+                                     mean_serial_kernel_size,
                                      max_pooling_count,
                                      average_pooling_count,
                                      stride_count,
