@@ -1,5 +1,6 @@
 
 import argparse
+import sys
 
 
 def main():
@@ -8,6 +9,7 @@ def main():
     porechop_subparser(subparsers)
     balance_subparser(subparsers)
     train_subparser(subparsers)
+    classify_subparser(subparsers)
     args = parser.parse_args()
     if args.subparser_name == 'porechop':
         from .porechop import training_data_from_porechop
@@ -18,6 +20,15 @@ def main():
     if args.subparser_name == 'train':
         from .train_network import train
         train(args)
+    if args.subparser_name == 'classify':
+        if args.fastq_file is not None and args.fastq_dir is not None:
+            sys.exit('Error: --fastq_file and --fastq_dir are mutually exclusive')
+        if args.fastq_file is not None and args.fastq_out_dir is None:
+            sys.exit('Error: --fastq_out_dir must be used with --fastq_file')
+        if args.fastq_dir is not None and args.fastq_out_dir is None:
+            sys.exit('Error: --fastq_out_dir must be used with --fastq_dir')
+        from .classify import classify
+        classify(args)
 
 
 def porechop_subparser(subparsers):
@@ -79,6 +90,28 @@ def train_subparser(subparsers):
                        help='Training batch size')
     group.add_argument('--test_fraction', type=float, required=False, default=0.1,
                        help='This fraction of the training samples will be used as a test set')
+
+
+def classify_subparser(subparsers):
+    group = subparsers.add_parser('classify', description='Classify reads using the CNN')
+
+    # Positional arguments
+    group.add_argument('model', type=str,
+                       help='A NN model file produced by the train command')
+    group.add_argument('input', type=str,
+                       help='One of the following: a single fast5 file, a directory of fast5 '
+                            'files (will be searched recursively) or a tab-delimited file of '
+                            'training data')
+
+    # Optional arguments
+    group.add_argument('--fastq_file', type=str, required=False,
+                       help='A fastq file (can be gzipped) of basecalled reads')
+    group.add_argument('--fastq_dir', type=str, required=False,
+                       help='A directory of fastq files (will be searched recursively, files can '
+                            'be gzipped) of basecalled reads')
+    group.add_argument('--fastq_out_dir', type=str, required=False,
+                       help='Output directory for binned reads (must be used with either '
+                            '--fastq_file or --fastq_dir')
 
 
 if __name__ == '__main__':
