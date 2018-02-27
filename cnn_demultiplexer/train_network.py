@@ -72,8 +72,8 @@ def train(args):
                      '%.4f' % training_time_minutes,
                      '%.4f' % prediction_time_ms]))
 
-    # model.save(args.out_prefix + '_model')
-    # save_history_to_file(args.out_prefix, hist.history)
+    model.save(args.out_prefix + '_model')
+    save_history_to_file(args.out_prefix, hist.history)
     print()
 
 

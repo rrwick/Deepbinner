@@ -84,7 +84,7 @@ def train_subparser(subparsers):
                        help='Amount of signal (number of samples) that will be used in the CNN')
     group.add_argument('--barcode_count', type=int, required=False, default=12,
                        help='The number of discrete barcodes')
-    group.add_argument('--epochs', type=int, required=False, default=500,
+    group.add_argument('--epochs', type=int, required=False, default=100,
                        help='Number of training epochs')
     group.add_argument('--batch_size', type=int, required=False, default=128,
                        help='Training batch size')
