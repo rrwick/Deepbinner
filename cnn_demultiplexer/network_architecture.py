@@ -663,3 +663,66 @@ def random_217(inputs, class_count):
     x = Dense(class_count, activation='softmax')(x)
 
     return x
+
+
+def random_080_with_gap(inputs, class_count):
+    x = inputs
+
+    x = Conv1D(filters=42, kernel_size=3, strides=2, activation='relu')(x)
+
+    x = Dropout(rate=0.0860010780012494)(x)
+
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = Dropout(rate=0.046698083895803544)(x)
+
+    x = Conv1D(filters=14, kernel_size=1, activation='relu')(x)
+
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = BatchNormalization()(x)
+    x = Dropout(rate=0.13881098500911096)(x)
+
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = BatchNormalization()(x)
+    x = Dropout(rate=0.07401793205106891)(x)
+
+    x1 = AveragePooling1D(pool_size=3, strides=1, padding='same')(x)
+    x1 = Conv1D(filters=42, kernel_size=1, padding='same', activation='relu')(x1)
+    x2 = Conv1D(filters=42, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=13, kernel_size=1, padding='same', activation='relu')(x)
+    x3 = Conv1D(filters=42, kernel_size=3, padding='same', activation='relu')(x3)
+    x4 = Conv1D(filters=13, kernel_size=1, padding='same', activation='relu')(x)
+    x4 = Conv1D(filters=42, kernel_size=3, padding='same', activation='relu')(x4)
+    x4 = Conv1D(filters=42, kernel_size=3, padding='same', activation='relu')(x4)
+    x = concatenate([x1, x2, x3, x4], axis=2)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = BatchNormalization()(x)
+    x = Dropout(rate=0.17179247399043648)(x)
+
+    x = Conv1D(filters=42, kernel_size=3, strides=2, activation='relu')(x)
+
+    x = BatchNormalization()(x)
+    x = Dropout(rate=0.12225393209569824)(x)
+
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = Conv1D(filters=42, kernel_size=3, activation='relu')(x)
+    x = MaxPooling1D(pool_size=2)(x)
+
+    x = BatchNormalization()(x)
+    x = Dropout(rate=0.16411133823036847)(x)
+
+    x = Conv1D(filters=class_count, kernel_size=1, activation='relu')(x)
+    x = GlobalAveragePooling1D()(x)
+    x = Softmax()(x)
+
+    return x

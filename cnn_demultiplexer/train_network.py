@@ -6,7 +6,7 @@ import numpy as np
 from keras.layers import Input
 from keras.models import Model
 from .network_architecture import build_random_network, random_080, random_217, random_268, \
-    random_317, random_339, random_381
+    random_317, random_339, random_381, random_080_with_gap
 from .trim_signal import normalise
 
 
@@ -15,7 +15,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = random_080(inputs, class_count)
+    predictions = random_080_with_gap(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
