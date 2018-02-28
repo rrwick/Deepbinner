@@ -7,6 +7,7 @@ from keras.layers import Input
 from keras.models import Model
 from .network_architecture import build_random_network, random_080, random_217, random_268, \
     random_317, random_339, random_381
+from .trim_signal import normalise
 
 
 def train(args):
@@ -110,10 +111,7 @@ def load_data_into_numpy(data_list, signal_size, class_count):
         signal = [float(x) for x in signal.split(',')]
         assert len(signal) == signal_size
 
-        # Normalise to zero mean and unit stdev.
-        mean = np.mean(signal)
-        stdev = np.std(signal)
-        signal = (signal - mean) / stdev
+        signal = normalise(signal)
 
         label_list = [0.0] * class_count
         label_list[label] = 1.0

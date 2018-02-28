@@ -118,3 +118,12 @@ def too_much_open_pore(signal):
     window_stdevs = [get_window_stdev(signal, 0, i, window_size) for i in range(window_count)]
     num_low_stdevs = sum(1 if x < stdev_threshold else 0 for x in window_stdevs)
     return num_low_stdevs / window_count > fraction
+
+
+def normalise(signal):
+    mean = np.mean(signal)
+    stdev = np.std(signal)
+    if stdev > 0.0:
+        return (signal - mean) / stdev
+    else:
+        return signal - mean

@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 from keras.models import load_model
 from .load_fast5s import find_all_fast5s, get_read_id_and_signal
-from .trim_signal import clean_signal
+from .trim_signal import normalise
 
 
 def classify(args):
@@ -131,9 +131,3 @@ def find_fast5s_in_dir(input_dir):
 
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
-
-
-def normalise(signal):
-    mean = np.mean(signal)
-    stdev = np.std(signal)
-    return(signal - mean) / stdev
