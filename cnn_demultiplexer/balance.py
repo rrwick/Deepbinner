@@ -90,9 +90,10 @@ def load_data_by_bin(raw_training_data_filename):
     print()
     print('Bin        Samples')
     print('------------------')
-    for bin_num, samples in bin_counts.items():
+    bin_nums = sorted(int(x) for x in bin_counts.keys())
+    for bin_num in bin_nums:
         print('%2d' % bin_num, end='')
-        print('%16s' % samples)
+        print('%16s' % bin_counts[str(bin_num)])
     return bin_counts, bin_lines
 
 
