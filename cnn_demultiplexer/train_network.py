@@ -72,8 +72,7 @@ def train(args):
                      '%.4f' % training_time_minutes,
                      '%.4f' % prediction_time_ms]))
 
-    model.save(args.out_prefix + '_model')
-    save_history_to_file(args.out_prefix, hist.history)
+    model.save(args.model_out)
     print()
 
 
@@ -138,23 +137,6 @@ def time_model_prediction(model, signals):
         milliseconds_per_read = elapsed_milliseconds / len(signals)
         min_time = min(min_time, milliseconds_per_read)
     return min_time
-
-
-def save_history_to_file(out_prefix, history):
-    with open(out_prefix + '_loss', 'wt') as loss_file:
-        loss_file.write('Epoch\tTraining_loss\tValidation_loss\t'
-                        'Training_accuracy\tValidation_accuracy\n')
-        for i, train_loss in enumerate(history['loss']):
-            loss_file.write(str(i))
-            loss_file.write('\t')
-            loss_file.write(str(train_loss))
-            loss_file.write('\t')
-            loss_file.write(str(history['val_loss'][i]))
-            loss_file.write('\t')
-            loss_file.write(str(history['acc'][i]))
-            loss_file.write('\t')
-            loss_file.write(str(history['val_acc'][i]))
-            loss_file.write('\n')
 
 
 def augment_data(signals, labels, signal_size, class_count, augmentation_factor):

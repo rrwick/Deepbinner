@@ -28,7 +28,7 @@ def balance_training_samples(args):
             for line in random.sample(bin_lines[barcode_bin], k=smallest_count):
                 parts = line.split('\t')
                 assert barcode_bin == parts[1]
-                start_signal, middle_signal, end_signal = parts[4], parts[5], parts[6]
+                start_signal, middle_signal, end_signal = parts[2], parts[3], parts[4]
 
                 start_signal, end_signal, good_start, good_end = \
                     clean_signal(start_signal, end_signal, args.signal_size, args.plot)

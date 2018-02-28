@@ -76,8 +76,8 @@ def train_subparser(subparsers):
     # Positional arguments
     group.add_argument('training_data', type=str,
                        help='Balanced training data produced by the select command')
-    group.add_argument('out_prefix', type=str,
-                       help='Prefix for the output files (*_model and *_loss)')
+    group.add_argument('model_out', type=str,
+                       help='Filename for the trained model')
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1000,
@@ -112,6 +112,13 @@ def classify_subparser(subparsers):
     group.add_argument('--fastq_out_dir', type=str, required=False,
                        help='Output directory for binned reads (must be used with either '
                             '--fastq_file or --fastq_dir')
+    group.add_argument('--batch_size', type=int, required=False, default=128,
+                       help='Training batch size')
+    group.add_argument('--max_start_end_margin', type=float, required=False, default=6000,
+                       help="Up to this much of a read's start/end signal will examined for "
+                            "barcode signals")
+    group.add_argument('--min_barcode_score', type=float, required=False, default=0.5,
+                       help='A barcode must reach at least this probability to be classified')
 
 
 if __name__ == '__main__':
