@@ -23,6 +23,8 @@ def get_signal_from_fast5s(fast5_dir, signal_size, max_start_end_margin, min_sig
             print('.', end='', file=sys.stderr, flush=True)
 
         read_id, signal = get_read_id_and_signal(fast5_file)
+        if read_id is None:
+            continue
 
         if len(signal) < min_signal_length:
             short_count += 1
@@ -66,11 +68,14 @@ def get_signal_from_fast5s(fast5_dir, signal_size, max_start_end_margin, min_sig
 
 
 def get_read_id_and_signal(fast5_file):
-    with h5py.File(fast5_file, 'r') as hdf5_file:
-        read_group = list(hdf5_file['Raw/Reads/'].values())[0]
-        read_id = read_group.attrs['read_id'].decode()
-        signal = read_group['Signal'][:]
-    return read_id, signal
+    try:
+        with h5py.File(fast5_file, 'r') as hdf5_file:
+            read_group = list(hdf5_file['Raw/Reads/'].values())[0]
+            read_id = read_group.attrs['read_id'].decode()
+            signal = read_group['Signal'][:]
+        return read_id, signal
+    except OSError:
+        return None, None
 
 
 def find_all_fast5s(directory):
