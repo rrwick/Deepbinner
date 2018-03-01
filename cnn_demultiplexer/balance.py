@@ -66,9 +66,9 @@ def balance_training_samples(args):
             start_read_file.write('0\t')
             start_read_file.write(get_random_signal(args.signal_size))
             start_read_file.write('\n')
-            start_read_file.write('0\t')
-            start_read_file.write(get_random_signal(args.signal_size))
-            start_read_file.write('\n')
+            end_read_file.write('0\t')
+            end_read_file.write(get_random_signal(args.signal_size))
+            end_read_file.write('\n')
 
     print()
 
