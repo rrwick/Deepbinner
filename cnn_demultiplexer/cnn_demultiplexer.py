@@ -10,23 +10,22 @@ def main():
     balance_subparser(subparsers)
     train_subparser(subparsers)
     classify_subparser(subparsers)
+
     args = parser.parse_args()
     if args.subparser_name == 'porechop':
         from .porechop import training_data_from_porechop
         training_data_from_porechop(args)
+
     if args.subparser_name == 'balance':
         from .balance import balance_training_samples
         balance_training_samples(args)
+
     if args.subparser_name == 'train':
         from .train_network import train
         train(args)
+
     if args.subparser_name == 'classify':
-        if args.fastq_file is not None and args.fastq_dir is not None:
-            sys.exit('Error: --fastq_file and --fastq_dir are mutually exclusive')
-        if args.fastq_file is not None and args.fastq_out_dir is None:
-            sys.exit('Error: --fastq_out_dir must be used with --fastq_file')
-        if args.fastq_dir is not None and args.fastq_out_dir is None:
-            sys.exit('Error: --fastq_out_dir must be used with --fastq_dir')
+        check_classify_arguments(args)
         from .classify import classify
         classify(args)
 
@@ -96,12 +95,12 @@ def classify_subparser(subparsers):
     group = subparsers.add_parser('classify', description='Classify reads using the CNN')
 
     # Positional arguments
-    group.add_argument('model', type=str,
-                       help='A NN model file produced by the train command')
     group.add_argument('input', type=str,
                        help='One of the following: a single fast5 file, a directory of fast5 '
                             'files (will be searched recursively) or a tab-delimited file of '
                             'training data')
+    group.add_argument('model', type=str, nargs='+',
+                       help='One or two model files produced by the train command')
 
     # Optional arguments
     group.add_argument('--fastq_file', type=str, required=False,
@@ -113,12 +112,33 @@ def classify_subparser(subparsers):
                        help='Output directory for binned reads (must be used with either '
                             '--fastq_file or --fastq_dir')
     group.add_argument('--batch_size', type=int, required=False, default=128,
-                       help='Training batch size')
-    group.add_argument('--max_start_end_margin', type=float, required=False, default=6000,
-                       help="Up to this much of a read's start/end signal will examined for "
-                            "barcode signals")
-    group.add_argument('--min_barcode_score', type=float, required=False, default=0.5,
-                       help='A barcode must reach at least this probability to be classified')
+                       help='CNN batch size')
+    group.add_argument('--scan_size', type=float, required=False, default=6000,
+                       help="This much of a read's start/end signal will examined for barcode "
+                            "signals")
+    group.add_argument('--score_diff', type=float, required=False, default=0.25,
+                       help='For a read to be classified, there must be this much difference '
+                            'between the best and second-best barcode scores')
+    group.add_argument('--require_both', action='store_true',
+                       help='When classifying reads using two models (read start and read end) '
+                            'require both barcode calls to match to make the final call')
+    group.add_argument('--verbose', action='store_true',
+                       help='Include the CNN probabilities for all barcodes in the results '
+                            '(default: just show the final barcode call)')
+
+
+def check_classify_arguments(args):
+    if args.fastq_file is not None and args.fastq_dir is not None:
+        sys.exit('Error: --fastq_file and --fastq_dir are mutually exclusive')
+    if args.fastq_file is not None and args.fastq_out_dir is None:
+        sys.exit('Error: --fastq_out_dir must be used with --fastq_file')
+    if args.fastq_dir is not None and args.fastq_out_dir is None:
+        sys.exit('Error: --fastq_out_dir must be used with --fastq_dir')
+    if len(args.model) > 2:
+        sys.exit('Error: you must provide exactly one or two trained model files')
+    if args.score_diff <= 0.0 or args.score_diff > 1.0:
+        sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
+                 'equal to 1)')
 
 
 if __name__ == '__main__':
