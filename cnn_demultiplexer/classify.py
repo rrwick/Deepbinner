@@ -21,8 +21,6 @@ def classify(args):
         if output_size != end_output_size:
             sys.exit('Error: two models have different number of barcode classes')
 
-    print_output_header(args.verbose, end_model)
-
     if input_type == 'directory':
         classify_fast5_files(find_all_fast5s(args.input, verbose=True),
                              start_model, start_input_size, end_model, end_input_size,
@@ -32,7 +30,7 @@ def classify(args):
                              start_model, start_input_size, end_model, end_input_size,
                              output_size, args)
     elif input_type == 'training_data':
-        classify_training_data(args.input, start_model, start_input_size, args)
+        classify_training_data(args.input, start_model, start_input_size, output_size, args)
     else:
         assert False
 
@@ -60,9 +58,8 @@ def load_trained_model(model_file):
 def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, end_input_size,
                          output_size, args):
     print('', file=sys.stderr)
-    # TO DO: progress bar
-
     using_read_ends = end_model is not None
+    print_output_header(args.verbose, using_read_ends)
 
     for fast5_batch in chunker(fast5_files, args.batch_size):
         read_ids, signals = [],  []
@@ -72,11 +69,11 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
             read_ids.append(read_id)
             signals.append(signal)
 
-        start_calls, start_probs = call_batch(fast5_batch, start_input_size, output_size, read_ids,
-                                              signals, start_model, args, 'start')
+        start_calls, start_probs = call_batch(start_input_size, output_size, read_ids, signals,
+                                              start_model, args, 'start')
         if using_read_ends:
-            end_calls, end_probs = call_batch(fast5_batch, end_input_size, output_size, read_ids,
-                                              signals, end_model, args, 'end')
+            end_calls, end_probs = call_batch(end_input_size, output_size, read_ids, signals,
+                                              end_model, args, 'end')
         else:
             end_calls, end_probs = None, None
 
@@ -96,11 +93,37 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
             print('\t'.join(output))
 
 
-def classify_training_data(input_file, model, input_size, args):
+def classify_training_data(input_file, model, input_size, output_size, args):
     print('', file=sys.stderr)
-    quit()
+    print_output_header(args.verbose, False)
 
-    # labels = model.predict(signals, batch_size=batch_size)
+    with open(input_file, 'rt') as training_data:
+        line_num = 0
+
+        # Read in a batch of lines.
+        read_ids, signals = [], []
+        while True:
+            try:
+                line = next(training_data).rstrip()
+            except StopIteration:
+                break
+            line_num += 1
+            barcode, signal = line.split('\t')
+            read_id = 'line_{}_barcode_{}'.format(line_num, barcode)
+            read_ids.append(read_id)
+            signals.append(np.array([int(x) for x in signal.split(',')]))
+            if len(read_ids) == args.batch_size:
+                break
+
+        start_calls, start_probs = call_batch(input_size, output_size, read_ids, signals,
+                                              model, args, 'start')
+
+        for i, read_id in enumerate(read_ids):
+            final_barcode_call = start_calls[i]
+            output = [read_id, final_barcode_call]
+            if args.verbose:
+                output += ['%.2f' % x for x in start_probs[i]]
+            print('\t'.join(output))
 
 
 def determine_input_type(input_file_or_dir):
@@ -131,10 +154,10 @@ def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def print_output_header(verbose, end_model):
+def print_output_header(verbose, using_read_ends):
     if not verbose:
         print('\t'.join(['read_ID', 'barcode_call']))
-    elif end_model is None:  # just doing start-read classification
+    elif not using_read_ends:  # just doing start-read classification
         print('\t'.join(['read_ID', 'barcode_call',
                          'none', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']))
     else:  # doing both start-read and end-read classification
@@ -171,9 +194,9 @@ def combine_calls(start_call, end_call, require_both):
     return 'none'
 
 
-def call_batch(fast5_batch, input_size, output_size, read_ids, signals, model, args, side):
+def call_batch(input_size, output_size, read_ids, signals, model, args, side):
     probabilities = []
-    for _ in fast5_batch:
+    for _ in read_ids:
         probabilities.append([0.0] * output_size)
 
     step_size = input_size // 2
@@ -187,7 +210,7 @@ def call_batch(fast5_batch, input_size, output_size, read_ids, signals, model, a
         sig_start = s * step_size
         sig_end = sig_start + input_size
 
-        input_signals = np.empty([len(fast5_batch), input_size], dtype=float)
+        input_signals = np.empty([len(read_ids), input_size], dtype=float)
         for i, signal in enumerate(signals):
             if side == 'start':
                 input_signal = signal[sig_start:sig_end]

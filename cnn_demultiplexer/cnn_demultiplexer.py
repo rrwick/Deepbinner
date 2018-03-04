@@ -136,6 +136,8 @@ def check_classify_arguments(args):
         sys.exit('Error: --fastq_out_dir must be used with --fastq_dir')
     if len(args.model) > 2:
         sys.exit('Error: you must provide exactly one or two trained model files')
+    if len(args.model) == 2 and args.require_both:
+        sys.exit('Error: --require_both can only be used with two models (read start and end)')
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
