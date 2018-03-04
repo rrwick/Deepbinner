@@ -23,8 +23,8 @@ def refine_training_samples(args):
                 match_count += 1
             total_count += 1
 
-            print('\rMatches: {} / {} ({0:.2f}%)'.format(match_count, total_count,
-                                                         100.0 * match_count / total_count),
+            print('\rMatches: {} / {} ({:.1f}%)'.format(match_count, total_count,
+                                                        100.0 * match_count / total_count),
                   file=sys.stderr, end='')
 
         print('', file=sys.stderr)
