@@ -8,7 +8,7 @@ def refine_training_samples(args):
 
         match_count, total_count = 0, 0
         for training_line, class_line in zip(old_training_data, classes):
-            classes_parts = class_line.split('\t')
+            classes_parts = class_line.rstrip().split('\t')
             train_barcode = training_line.split('\t')[0]
             class_barcode = classes_parts[1]
 
