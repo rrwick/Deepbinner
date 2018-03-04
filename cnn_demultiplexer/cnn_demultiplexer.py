@@ -6,12 +6,18 @@ import sys
 def main():
     parser = argparse.ArgumentParser(description='CNN demultiplexer for Oxford Nanopore reads')
     subparsers = parser.add_subparsers(dest='subparser_name')
+    classify_subparser(subparsers)
     porechop_subparser(subparsers)
     balance_subparser(subparsers)
     train_subparser(subparsers)
-    classify_subparser(subparsers)
-
+    refine_subparser(subparsers)
     args = parser.parse_args()
+
+    if args.subparser_name == 'classify':
+        check_classify_arguments(args)
+        from .classify import classify
+        classify(args)
+
     if args.subparser_name == 'porechop':
         from .porechop import training_data_from_porechop
         training_data_from_porechop(args)
@@ -24,10 +30,45 @@ def main():
         from .train_network import train
         train(args)
 
-    if args.subparser_name == 'classify':
-        check_classify_arguments(args)
-        from .classify import classify
-        classify(args)
+    if args.subparser_name == 'refine':
+        from .refine import refine_training_samples
+        refine_training_samples(args)
+
+
+def classify_subparser(subparsers):
+    group = subparsers.add_parser('classify', description='Classify reads using the CNN')
+
+    # Positional arguments
+    group.add_argument('input', type=str,
+                       help='One of the following: a single fast5 file, a directory of fast5 '
+                            'files (will be searched recursively) or a tab-delimited file of '
+                            'training data')
+    group.add_argument('model', type=str, nargs='+',
+                       help='One or two model files produced by the train command')
+
+    # Optional arguments
+    group.add_argument('--fastq_file', type=str, required=False,
+                       help='A fastq file (can be gzipped) of basecalled reads')
+    group.add_argument('--fastq_dir', type=str, required=False,
+                       help='A directory of fastq files (will be searched recursively, files can '
+                            'be gzipped) of basecalled reads')
+    group.add_argument('--fastq_out_dir', type=str, required=False,
+                       help='Output directory for binned reads (must be used with either '
+                            '--fastq_file or --fastq_dir')
+    group.add_argument('--batch_size', type=int, required=False, default=128,
+                       help='CNN batch size')
+    group.add_argument('--scan_size', type=float, required=False, default=6000,
+                       help="This much of a read's start/end signal will examined for barcode "
+                            "signals")
+    group.add_argument('--score_diff', type=float, required=False, default=0.5,
+                       help='For a read to be classified, there must be this much difference '
+                            'between the best and second-best barcode scores')
+    group.add_argument('--require_both', action='store_true',
+                       help='When classifying reads using two models (read start and read end) '
+                            'require both barcode calls to match to make the final call')
+    group.add_argument('--verbose', action='store_true',
+                       help='Include the CNN probabilities for all barcodes in the results '
+                            '(default: just show the final barcode call)')
 
 
 def porechop_subparser(subparsers):
@@ -74,7 +115,7 @@ def train_subparser(subparsers):
 
     # Positional arguments
     group.add_argument('training_data', type=str,
-                       help='Balanced training data produced by the select command')
+                       help='Balanced training data produced by the balance command')
     group.add_argument('model_out', type=str,
                        help='Filename for the trained model')
 
@@ -91,40 +132,14 @@ def train_subparser(subparsers):
                        help='This fraction of the training samples will be used as a test set')
 
 
-def classify_subparser(subparsers):
-    group = subparsers.add_parser('classify', description='Classify reads using the CNN')
+def refine_subparser(subparsers):
+    group = subparsers.add_parser('refine', description='Refine the training set')
 
     # Positional arguments
-    group.add_argument('input', type=str,
-                       help='One of the following: a single fast5 file, a directory of fast5 '
-                            'files (will be searched recursively) or a tab-delimited file of '
-                            'training data')
-    group.add_argument('model', type=str, nargs='+',
-                       help='One or two model files produced by the train command')
-
-    # Optional arguments
-    group.add_argument('--fastq_file', type=str, required=False,
-                       help='A fastq file (can be gzipped) of basecalled reads')
-    group.add_argument('--fastq_dir', type=str, required=False,
-                       help='A directory of fastq files (will be searched recursively, files can '
-                            'be gzipped) of basecalled reads')
-    group.add_argument('--fastq_out_dir', type=str, required=False,
-                       help='Output directory for binned reads (must be used with either '
-                            '--fastq_file or --fastq_dir')
-    group.add_argument('--batch_size', type=int, required=False, default=128,
-                       help='CNN batch size')
-    group.add_argument('--scan_size', type=float, required=False, default=6000,
-                       help="This much of a read's start/end signal will examined for barcode "
-                            "signals")
-    group.add_argument('--score_diff', type=float, required=False, default=0.5,
-                       help='For a read to be classified, there must be this much difference '
-                            'between the best and second-best barcode scores')
-    group.add_argument('--require_both', action='store_true',
-                       help='When classifying reads using two models (read start and read end) '
-                            'require both barcode calls to match to make the final call')
-    group.add_argument('--verbose', action='store_true',
-                       help='Include the CNN probabilities for all barcodes in the results '
-                            '(default: just show the final barcode call)')
+    group.add_argument('training_data', type=str,
+                       help='Balanced training data produced by the balance command')
+    group.add_argument('classification_data', type=str,
+                       help='Training data barcode calls produced by the classify command')
 
 
 def check_classify_arguments(args):
