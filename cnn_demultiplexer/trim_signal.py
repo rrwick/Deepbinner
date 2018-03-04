@@ -121,6 +121,8 @@ def too_much_open_pore(signal):
 
 
 def normalise(signal):
+    if len(signal) == 0:
+        return signal
     mean = np.mean(signal)
     stdev = np.std(signal)
     if stdev > 0.0:
