@@ -2,7 +2,6 @@
 import sys
 import pathlib
 import h5py
-import math
 import numpy as np
 from keras.models import load_model
 from .load_fast5s import find_all_fast5s, get_read_id_and_signal
@@ -14,6 +13,7 @@ def classify(args):
     if input_type == 'training_data' and len(args.model) == 2:
         sys.exit('Error: training data can only be classified using a single model')
 
+    print('', file=sys.stderr)
     start_model, start_input_size, output_size = load_trained_model(args.model[0])
     end_model, end_input_size, end_output_size = None, None, None
     if len(args.model) == 2:
@@ -38,7 +38,6 @@ def classify(args):
 
 
 def load_trained_model(model_file):
-    print('', file=sys.stderr)
     if not pathlib.Path(model_file).is_file():
         sys.exit('Error: {} does not exist'.format(model_file))
     print('Loading {} neural network... '.format(model_file), file=sys.stderr, end='', flush=True)
@@ -194,8 +193,8 @@ def call_batch(fast5_batch, input_size, output_size, read_ids, signals, model, a
                 input_signal = signal[sig_start:sig_end]
             else:
                 assert side == 'end'
-                a = max(len(signal) - sig_start, 0)
-                b = max(len(signal) - sig_end, 0)
+                a = max(len(signal) - sig_end, 0)
+                b = max(len(signal) - sig_start, 0)
                 input_signal = signal[a:b]
 
             input_signal = normalise(input_signal)
@@ -210,14 +209,11 @@ def call_batch(fast5_batch, input_size, output_size, read_ids, signals, model, a
         input_signals = np.expand_dims(input_signals, axis=2)
         labels = model.predict(input_signals, batch_size=args.batch_size)
 
+        # For each read, we keep the new set of probabilities if they have a stronger match for
+        # any of the barcodes (excluding the none class).
         for i, read_id in enumerate(read_ids):
-            probabilities[i] = [max(x) for x in zip(list(labels[i]),
-                                                    probabilities[i])]
-
-    # Make all the probabilities sum to 1.
-    for i, read_id in enumerate(read_ids):
-        total = sum(probabilities[i])
-        probabilities[i] = [x / total for x in probabilities[i]]
+            if max(labels[i][1:]) > max(probabilities[i][1:]):
+                probabilities[i] = labels[i]
 
     barcode_calls = []
     for i, read_id in enumerate(read_ids):

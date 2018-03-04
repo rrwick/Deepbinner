@@ -116,7 +116,7 @@ def classify_subparser(subparsers):
     group.add_argument('--scan_size', type=float, required=False, default=6000,
                        help="This much of a read's start/end signal will examined for barcode "
                             "signals")
-    group.add_argument('--score_diff', type=float, required=False, default=0.25,
+    group.add_argument('--score_diff', type=float, required=False, default=0.5,
                        help='For a read to be classified, there must be this much difference '
                             'between the best and second-best barcode scores')
     group.add_argument('--require_both', action='store_true',
