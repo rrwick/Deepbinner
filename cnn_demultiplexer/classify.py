@@ -99,31 +99,37 @@ def classify_training_data(input_file, model, input_size, output_size, args):
 
     with open(input_file, 'rt') as training_data:
         line_num = 0
-
-        # Read in a batch of lines.
-        read_ids, signals = [], []
+        finished = False
         while True:
-            try:
-                line = next(training_data).rstrip()
-            except StopIteration:
-                break
-            line_num += 1
-            barcode, signal = line.split('\t')
-            read_id = 'line_{}_barcode_{}'.format(line_num, barcode)
-            read_ids.append(read_id)
-            signals.append(np.array([int(x) for x in signal.split(',')]))
-            if len(read_ids) == args.batch_size:
-                break
 
-        start_calls, start_probs = call_batch(input_size, output_size, read_ids, signals,
-                                              model, args, 'start')
+            # Read in a batch of lines.
+            read_ids, signals = [], []
+            while True:
+                try:
+                    line = next(training_data).rstrip()
+                except StopIteration:
+                    finished = True
+                    break
+                line_num += 1
+                barcode, signal = line.split('\t')
+                read_id = 'line_{}_barcode_{}'.format(line_num, barcode)
+                read_ids.append(read_id)
+                signals.append(np.array([int(x) for x in signal.split(',')]))
+                if len(read_ids) == args.batch_size:
+                    break
 
-        for i, read_id in enumerate(read_ids):
-            final_barcode_call = start_calls[i]
-            output = [read_id, final_barcode_call]
-            if args.verbose:
-                output += ['%.2f' % x for x in start_probs[i]]
-            print('\t'.join(output))
+            start_calls, start_probs = call_batch(input_size, output_size, read_ids, signals,
+                                                  model, args, 'start')
+
+            for i, read_id in enumerate(read_ids):
+                final_barcode_call = start_calls[i]
+                output = [read_id, final_barcode_call]
+                if args.verbose:
+                    output += ['%.2f' % x for x in start_probs[i]]
+                print('\t'.join(output))
+
+            if finished:
+                break
 
 
 def determine_input_type(input_file_or_dir):
