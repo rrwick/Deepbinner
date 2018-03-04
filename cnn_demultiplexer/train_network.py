@@ -15,7 +15,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = random_080_with_gap(inputs, class_count)
+    predictions = build_random_network(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()

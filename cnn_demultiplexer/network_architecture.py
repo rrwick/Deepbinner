@@ -6,7 +6,7 @@ from keras.models import Model
 
 
 def build_random_network(inputs, class_count):
-    max_allowed_parameters = 500000
+    max_allowed_parameters = 250000
 
     while True:
         try:
@@ -120,7 +120,7 @@ def build_random_network_2(inputs, class_count):
     # Finish the network in two possible ways:
     # option 1: the traditional method of flattening followed by dense layers
     dense_count = 0
-    if random.random() < 0.5:
+    if random.random() < 0.0:
         print('# Finishing with dense layers')
         x = add_flatten_layer(x)
 
