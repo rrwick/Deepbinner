@@ -5,8 +5,7 @@ import numpy as np
 
 from keras.layers import Input
 from keras.models import Model
-from .network_architecture import build_random_network, random_080, random_217, random_268, \
-    random_317, random_339, random_381, random_080_with_gap
+from .network_architecture import random_080_with_gap_more_norm
 from .trim_signal import normalise
 
 
@@ -15,7 +14,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = build_random_network(inputs, class_count)
+    predictions = random_080_with_gap_more_norm(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
@@ -24,11 +23,15 @@ def train(args):
     signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
 
     # Partition off 10% of the data for use as a validation set.
-    validation_count = len(signals) // 10
-    validation_signals = signals[:validation_count]
-    validation_labels = labels[:validation_count]
-    training_signals = signals[validation_count:]
-    training_labels = labels[validation_count:]
+    validation_count = int(len(signals) * args.test_fraction)
+    if validation_count > 0:
+        validation_signals = signals[:validation_count]
+        validation_labels = labels[:validation_count]
+        training_signals = signals[validation_count:]
+        training_labels = labels[validation_count:]
+    else:
+        validation_signals, validation_labels = [], []
+        training_signals, training_labels = signals, labels
 
     print('Training/validation split: {}, {}'.format(len(training_signals),
                                                      len(validation_signals)))
