@@ -5,7 +5,7 @@ import numpy as np
 
 from keras.layers import Input
 from keras.models import Model
-from .network_architecture import random_080_norm_and_drop_after_bottleneck
+from .network_architecture import random_080_fewer_filters
 from .trim_signal import normalise
 
 
@@ -14,7 +14,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(args.signal_size, 1))
-    predictions = random_080_norm_and_drop_after_bottleneck(inputs, class_count)
+    predictions = random_080_fewer_filters(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
