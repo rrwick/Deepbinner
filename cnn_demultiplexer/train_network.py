@@ -15,8 +15,8 @@ def train(args):
     print()
     class_count = args.barcode_count + 1
 
-    inputs = Input(shape=(args.signal_size, 1))
-    predictions = random_080_add_padding_more_dropout(inputs, class_count)
+    inputs = Input(shape=(1024, 1))
+    predictions = random_080_add_padding_more_noise(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
@@ -106,6 +106,10 @@ def load_training_set(training_data_filename, signal_size, class_count):
 
 
 def load_data_into_numpy(data_list, signal_size, class_count):
+
+    # TO DO: do I need signal_size? I could instead just make sure that the data being loaded has a
+    #        consistent size.
+
     signals = np.empty([len(data_list), signal_size], dtype=float)
     labels = np.empty([len(data_list), class_count], dtype=float)
 
