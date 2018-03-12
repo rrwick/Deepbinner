@@ -5,9 +5,7 @@ import numpy as np
 
 from keras.layers import Input
 from keras.models import Model
-from .network_architecture import random_080_add_padding, random_080_adjust_kernels_to_fit, \
-    random_080_add_padding_more_dropout, random_080_adjust_kernels_to_fit_more_dropout, \
-    random_080_add_padding_more_noise, random_080_adjust_kernels_to_fit_more_noise
+from .network_architecture import build_network
 from .trim_signal import normalise
 
 
@@ -16,7 +14,7 @@ def train(args):
     class_count = args.barcode_count + 1
 
     inputs = Input(shape=(1024, 1))
-    predictions = random_080_add_padding_more_noise(inputs, class_count)
+    predictions = build_network(inputs, class_count)
 
     model = Model(inputs=inputs, outputs=predictions)
     model.summary()
