@@ -36,39 +36,52 @@ def main():
 
 
 def classify_subparser(subparsers):
-    group = subparsers.add_parser('classify', description='Classify reads using the CNN')
+    group = subparsers.add_parser('classify', description='Classify reads using the CNN',
+                                  add_help=False)
 
     # Positional arguments
-    group.add_argument('input', type=str,
-                       help='One of the following: a single fast5 file, a directory of fast5 '
-                            'files (will be searched recursively) or a tab-delimited file of '
-                            'training data')
-    group.add_argument('model', type=str, nargs='+',
-                       help='One or two model files produced by the train command')
+    positional_args = group.add_argument_group('Positional')
+    positional_args.add_argument('input', type=str,
+                                 help='One of the following: a single fast5 file, a directory of '
+                                      'fast5 files (will be searched recursively) or a '
+                                      'tab-delimited file of training data')
 
-    # Optional arguments
-    group.add_argument('--fastq_file', type=str, required=False,
-                       help='A fastq file (can be gzipped) of basecalled reads')
-    group.add_argument('--fastq_dir', type=str, required=False,
-                       help='A directory of fastq files (will be searched recursively, files can '
-                            'be gzipped) of basecalled reads')
-    group.add_argument('--fastq_out_dir', type=str, required=False,
-                       help='Output directory for binned reads (must be used with either '
-                            '--fastq_file or --fastq_dir')
-    group.add_argument('--batch_size', type=int, required=False, default=128,
-                       help='CNN batch size')
-    group.add_argument('--scan_size', type=float, required=False, default=6000,
-                       help="This much of a read's start/end signal will examined for barcode "
-                            "signals")
-    group.add_argument('--score_diff', type=float, required=False, default=0.5,
-                       help='For a read to be classified, there must be this much difference '
-                            'between the best and second-best barcode scores')
-    group.add_argument('--require_both', action='store_true',
-                       help='When classifying reads using two models (read start and read end) '
-                            'require both barcode calls to match to make the final call')
-    group.add_argument('--verbose', action='store_true',
-                       help='Include the CNN probabilities for all barcodes in the results '
-                            '(default: just show the final barcode call)')
+    model_args = group.add_argument_group('Models (at least one is required)')
+    model_args.add_argument('-s', '--start_model', type=str, required=False,
+                            help='Model trained on the starts of reads')
+    model_args.add_argument('-e', '--end_model', type=str, required=False,
+                            help='Model trained on the ends of reads')
+
+    output_args = group.add_argument_group('Output')
+    output_args.add_argument('--fastq_file', type=str, required=False,
+                             help='A fastq file (can be gzipped) of basecalled reads')
+    output_args.add_argument('--fastq_dir', type=str, required=False,
+                             help='A directory of fastq files (will be searched recursively, files '
+                                  'can be gzipped) of basecalled reads')
+    output_args.add_argument('--fastq_out_dir', type=str, required=False,
+                             help='Output directory for binned reads (must be used with either '
+                                  '--fastq_file or --fastq_dir')
+    output_args.add_argument('--verbose', action='store_true',
+                             help='Include the CNN probabilities for all barcodes in the results '
+                                  '(default: just show the final barcode call)')
+
+    barcode_args = group.add_argument_group('Barcoding')
+    barcode_args.add_argument('--scan_size', type=float, required=False, default=6144,
+                              help="This much of a read's start/end signal will examined for "
+                                   "barcode signals")
+    barcode_args.add_argument('--score_diff', type=float, required=False, default=0.5,
+                              help='For a read to be classified, there must be this much '
+                                   'difference between the best and second-best barcode scores')
+    barcode_args.add_argument('--require_both', action='store_true',
+                              help='When classifying reads using two models (read start and read '
+                                   'end) require both barcode calls to match to make the final '
+                                   'call')
+
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('--batch_size', type=int, required=False, default=128,
+                            help='CNN batch size')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
 
 
 def porechop_subparser(subparsers):
@@ -149,10 +162,11 @@ def check_classify_arguments(args):
         sys.exit('Error: --fastq_out_dir must be used with --fastq_file')
     if args.fastq_dir is not None and args.fastq_out_dir is None:
         sys.exit('Error: --fastq_out_dir must be used with --fastq_dir')
-    if len(args.model) > 2:
-        sys.exit('Error: you must provide exactly one or two trained model files')
-    if len(args.model) == 2 and args.require_both:
-        sys.exit('Error: --require_both can only be used with two models (read start and end)')
+    model_count = (0 if args.start_model is None else 1) + (0 if args.end_model is None else 1)
+    if model_count == 0:
+        sys.exit('Error: you must provide at least one model')
+    if model_count < 2 and args.require_both:
+        sys.exit('Error: --require_both can only be used with two models (start and end)')
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
