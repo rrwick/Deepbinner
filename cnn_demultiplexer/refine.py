@@ -3,6 +3,8 @@ import sys
 
 
 def refine_training_samples(args):
+    print('\nRefining training data', file=sys.stderr)
+
     with open(args.training_data) as old_training_data, open(args.classification_data) as classes:
         _ = next(classes)  # Skip the header line
 
@@ -23,8 +25,8 @@ def refine_training_samples(args):
                 match_count += 1
             total_count += 1
 
-            print('\rMatches: {} / {} ({:.1f}%)'.format(match_count, total_count,
+            print('\rMatches: {} / {} ({:.2f}%)'.format(match_count, total_count,
                                                         100.0 * match_count / total_count),
                   file=sys.stderr, end='')
 
-        print('', file=sys.stderr)
+        print('\n', file=sys.stderr)

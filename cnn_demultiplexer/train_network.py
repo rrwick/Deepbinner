@@ -22,15 +22,18 @@ def train(args):
 
     signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
 
-    # Partition off 10% of the data for use as a validation set.
+    # Partition off some of the data for use as a validation set.
     validation_count = int(len(signals) * args.test_fraction)
     if validation_count > 0:
         validation_signals = signals[:validation_count]
         validation_labels = labels[:validation_count]
         training_signals = signals[validation_count:]
         training_labels = labels[validation_count:]
+
+    # If we are training using all the data, then we don't divide into training and test. Instead,
+    # the same data (all of it) is used for both.
     else:
-        validation_signals, validation_labels = [], []
+        validation_signals, validation_labels = signals, labels
         training_signals, training_labels = signals, labels
 
     print('Training/validation split: {}, {}'.format(len(training_signals),
