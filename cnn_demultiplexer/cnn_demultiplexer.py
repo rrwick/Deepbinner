@@ -1,10 +1,12 @@
 
 import argparse
 import sys
+from .help_formatter import MyHelpFormatter
 
 
 def main():
-    parser = argparse.ArgumentParser(description='CNN demultiplexer for Oxford Nanopore reads')
+    parser = argparse.ArgumentParser(description='CNN demultiplexer for Oxford Nanopore reads',
+                                     formatter_class=MyHelpFormatter)
     subparsers = parser.add_subparsers(dest='subparser_name')
     classify_subparser(subparsers)
     porechop_subparser(subparsers)
@@ -37,7 +39,7 @@ def main():
 
 def classify_subparser(subparsers):
     group = subparsers.add_parser('classify', description='Classify reads using the CNN',
-                                  add_help=False)
+                                  formatter_class=MyHelpFormatter, add_help=False)
 
     # Positional arguments
     positional_args = group.add_argument_group('Positional')
@@ -85,7 +87,8 @@ def classify_subparser(subparsers):
 
 
 def porechop_subparser(subparsers):
-    group = subparsers.add_parser('porechop', description='Prepare training data using Porechop')
+    group = subparsers.add_parser('porechop', description='Prepare training data using Porechop',
+                                  formatter_class=MyHelpFormatter)
 
     # Positional arguments
     group.add_argument('porechop_out', type=str,
@@ -106,7 +109,8 @@ def porechop_subparser(subparsers):
 
 
 def balance_subparser(subparsers):
-    group = subparsers.add_parser('balance', description='Select balanced set of training samples')
+    group = subparsers.add_parser('balance', description='Select balanced set of training samples',
+                                  formatter_class=MyHelpFormatter)
 
     # Positional arguments
     group.add_argument('training_data', type=str,
@@ -124,7 +128,8 @@ def balance_subparser(subparsers):
 
 
 def train_subparser(subparsers):
-    group = subparsers.add_parser('train', description='Train the CNN')
+    group = subparsers.add_parser('train', description='Train the CNN',
+                                  formatter_class=MyHelpFormatter)
 
     # Positional arguments
     group.add_argument('training_data', type=str,
@@ -139,6 +144,8 @@ def train_subparser(subparsers):
                        help='The number of discrete barcodes')
     group.add_argument('--epochs', type=int, required=False, default=100,
                        help='Number of training epochs')
+    group.add_argument('--aug', type=int, required=False, default=3,
+                       help='Data augmentation factor (1 = no augmentation)')
     group.add_argument('--batch_size', type=int, required=False, default=128,
                        help='Training batch size')
     group.add_argument('--test_fraction', type=float, required=False, default=0.1,
@@ -146,7 +153,8 @@ def train_subparser(subparsers):
 
 
 def refine_subparser(subparsers):
-    group = subparsers.add_parser('refine', description='Refine the training set')
+    group = subparsers.add_parser('refine', description='Refine the training set',
+                                  formatter_class=MyHelpFormatter)
 
     # Positional arguments
     group.add_argument('training_data', type=str,

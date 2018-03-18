@@ -41,7 +41,7 @@ def train(args):
 
     training_signals, training_labels = augment_data(training_signals, training_labels,
                                                      args.signal_size, class_count,
-                                                     augmentation_factor=3)
+                                                     augmentation_factor=args.aug)
 
     training_signals = np.expand_dims(training_signals, axis=2)
     validation_signals = np.expand_dims(validation_signals, axis=2)
