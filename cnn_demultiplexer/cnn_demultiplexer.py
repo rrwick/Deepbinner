@@ -144,7 +144,7 @@ def train_subparser(subparsers):
                        help='The number of discrete barcodes')
     group.add_argument('--epochs', type=int, required=False, default=100,
                        help='Number of training epochs')
-    group.add_argument('--aug', type=int, required=False, default=3,
+    group.add_argument('--aug', type=int, required=False, default=2,
                        help='Data augmentation factor (1 = no augmentation)')
     group.add_argument('--batch_size', type=int, required=False, default=128,
                        help='Training batch size')
