@@ -81,23 +81,47 @@ If you would like to [design your own CNN architecture](https://keras.io/getting
 The training data we prepared earlier may have some duds in it. This may be due to incorrect trimming of open pore signal. Or it may be that Porechop produced a false positive. Either way, our training data may have a signal which is supposed to have a particular barcode but does not. This is not good for training!
 
 To remedy this, we use our trained CNN to classify our training data:
-
 ```
 cnn_demultiplexer classify training_read_starts read_start_model > read_starts_classification
 cnn_demultiplexer classify training_read_ends read_end_model > read_ends_classification
 ```
 
 As you would expect, this process should classify most samples to the same barcode bin as their training label. The small fraction that do not match should be excluded from the training set. These commands will produce new training sets with those samples filtered out:
-
 ```
 cnn_demultiplexer refine training_read_starts read_starts_classification > training_read_starts_refined
 cnn_demultiplexer refine training_read_ends read_ends_classification > training_read_ends_refined
 ```
 
-Now that a new, better training set is available, we can retrain our CNN and hopefully produce even better models than before.
-
+Now that a new, better training set is available, we can retrain our CNN and hopefully produce even better models than before:
 ```
 rm read_start_model read_end_model
 cnn_demultiplexer train training_read_starts_refined read_start_model
 cnn_demultiplexer train training_read_ends_refined read_end_model
 ```
+
+
+## Refining the training set and retraining (in a loop)
+
+There may be benefit in repeating the previously described method for refining the training data. This is because each time it runs, the program will randomly allocate a the samples to training and validation sets (default 90:10 ratio). Samples in the training set can be 'memorised' by the network, i.e. even if they are bogus samples, the network may be able to classify them correctly. Refining the training data is therefore most effective for samples that were in the validation set, where memorisation wasn't possible.
+
+You may therefore want to repeat the refining process multiple times, so any bogus sample has a greater chance of landing in the validation set and then being culled. Here is a Bash loop I used to do this:
+```
+training_data="training_read_starts"
+model="read_start_model"
+classifications="read_starts_classification"
+
+printf "Starting training data count: "
+wc -l "$training_data"
+
+for i in {1..10}; do
+    rm -f "$model"
+    ./cnn_demultiplexer-runner.py train --epochs 25 "$training_data" "$model"
+    ./cnn_demultiplexer-runner.py classify -s "$model" "$training_data" > "$classifications"
+    ./cnn_demultiplexer-runner.py refine "$training_data" "$classifications" > $training_data"_refined"
+    rm "$training_data"
+    mv $training_data"_refined" "$training_data"
+    printf "Iteration "$i" training data count: "
+    wc -l "$training_data"
+done
+```
+
