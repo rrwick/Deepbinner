@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-import os
-import sys
-import subprocess
 from setuptools import setup
 
 
@@ -11,16 +8,19 @@ def readme():
         return f.read()
 
 
-__version__ = '0.1.0'
+# Get the program version from another file.
+__version__ = '0.0.0'
+exec(open('deepbinner/version.py').read())
 
 
-setup(name='CNN Demultiplexer',
+setup(name='Deepbinner',
       version=__version__,
-      description='CNN barcode demultiplexer for Oxford Nanopore reads',
+      description='Deepbinner: a deep convolutional neural network barcode demultiplexer for '
+                  'Oxford Nanopore reads',
       long_description=readme(),
-      url='https://github.com/rrwick/CNN-Demultiplexer',
+      url='https://github.com/rrwick/Deepbinner',
       author='Ryan Wick',
-      author_email='',
-      entry_points={"console_scripts": ['cnn_demultiplexer = cnn_demultiplexer.cnn_demultiplexer:main']},
+      author_email='rrwick@gmail.com',
+      entry_points={"console_scripts": ['deepbinner = deepbinner.deepbinner:main']},
       include_package_data=True,
       zip_safe=False)

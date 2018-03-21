@@ -1,4 +1,4 @@
-# CNN demultiplexer
+# Deepbinner
 
 ## Requirements
 

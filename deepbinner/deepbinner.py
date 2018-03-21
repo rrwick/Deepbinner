@@ -1,18 +1,39 @@
+"""
+Copyright 2018 Ryan Wick (rrwick@gmail.com)
+https://github.com/rrwick/Deepbinner/
+
+This file is part of Deepbinner. Deepbinner is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by the Free Software Foundation,
+either version 3 of the License, or (at your option) any later version. Deepbinner is distributed
+in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+details. You should have received a copy of the GNU General Public License along with Deepbinner.
+If not, see <http://www.gnu.org/licenses/>.
+"""
 
 import argparse
 import sys
 from .help_formatter import MyHelpFormatter
+from .version import __version__
 
 
 def main():
-    parser = argparse.ArgumentParser(description='CNN demultiplexer for Oxford Nanopore reads',
-                                     formatter_class=MyHelpFormatter)
-    subparsers = parser.add_subparsers(dest='subparser_name')
+    parser = argparse.ArgumentParser(description='Deepbinner: a deep convolutional neural network '
+                                                 'barcode demultiplexer for Oxford Nanopore reads',
+                                     formatter_class=MyHelpFormatter, add_help=False)
+    subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     classify_subparser(subparsers)
     porechop_subparser(subparsers)
     balance_subparser(subparsers)
     train_subparser(subparsers)
     refine_subparser(subparsers)
+
+    help_args = parser.add_argument_group('Help')
+    help_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                           help='Show this help message and exit')
+    help_args.add_argument('--version', action='version', version=__version__,
+                           help="Show program's version number and exit")
+
     args = parser.parse_args()
 
     if args.subparser_name == 'classify':

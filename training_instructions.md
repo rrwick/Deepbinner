@@ -1,4 +1,4 @@
-# Training the CNN
+# Training the Deepbinner CNN
 
 These instructions cover all the steps necessary to train CNN models for use in the `cnn_demultiplexer classify` command.
 
