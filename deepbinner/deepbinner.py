@@ -13,14 +13,14 @@ If not, see <http://www.gnu.org/licenses/>.
 
 import argparse
 import sys
-from .help_formatter import MyHelpFormatter
+from .help_formatter import MyParser, MyHelpFormatter
 from .version import __version__
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Deepbinner: a deep convolutional neural network '
-                                                 'barcode demultiplexer for Oxford Nanopore reads',
-                                     formatter_class=MyHelpFormatter, add_help=False)
+    parser = MyParser(description='Deepbinner: a deep convolutional neural network '
+                                  'barcode demultiplexer for Oxford Nanopore reads',
+                      formatter_class=MyHelpFormatter, add_help=False)
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     classify_subparser(subparsers)
     porechop_subparser(subparsers)
@@ -34,6 +34,11 @@ def main():
     help_args.add_argument('--version', action='version', version=__version__,
                            help="Show program's version number and exit")
 
+    # If no arguments were used, print the base-level help which lists possible commands.
+    if len(sys.argv) == 1:
+        parser.print_help(file=sys.stderr)
+        sys.exit(1)
+
     args = parser.parse_args()
 
     if args.subparser_name == 'classify':
@@ -41,19 +46,19 @@ def main():
         from .classify import classify
         classify(args)
 
-    if args.subparser_name == 'porechop':
+    elif args.subparser_name == 'porechop':
         from .porechop import training_data_from_porechop
         training_data_from_porechop(args)
 
-    if args.subparser_name == 'balance':
+    elif args.subparser_name == 'balance':
         from .balance import balance_training_samples
         balance_training_samples(args)
 
-    if args.subparser_name == 'train':
+    elif args.subparser_name == 'train':
         from .train_network import train
         train(args)
 
-    if args.subparser_name == 'refine':
+    elif args.subparser_name == 'refine':
         from .refine import refine_training_samples
         refine_training_samples(args)
 

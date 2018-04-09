@@ -15,11 +15,26 @@ import argparse
 import os
 import shutil
 import subprocess
+import sys
 
 
 END_FORMATTING = '\033[0m'
 BOLD = '\033[1m'
 DIM = '\033[2m'
+
+
+class MyParser(argparse.ArgumentParser):
+    """
+    This subclass of ArgumentParser changes the error messages, such that if a command is run with
+    no other arguments, it will display the help text. If there is a different error, it will give
+    the normal response (usage and error).
+    """
+    def error(self, message):
+        if len(sys.argv) == 2:  # if a command was given but nothing else
+            self.print_help(file=sys.stderr)
+            sys.exit(2)
+        else:
+            super().error(message)
 
 
 class MyHelpFormatter(argparse.HelpFormatter):
