@@ -11,6 +11,7 @@ details. You should have received a copy of the GNU General Public License along
 If not, see <http://www.gnu.org/licenses/>.
 """
 
+import collections
 import sys
 import pathlib
 import h5py
@@ -68,7 +69,7 @@ def classify(args):
 def load_trained_model(model_file):
     if not pathlib.Path(model_file).is_file():
         sys.exit('Error: {} does not exist'.format(model_file))
-    print('Loading {} neural network... '.format(model_file), file=sys.stderr, end='', flush=True)
+    print('Loading {}... '.format(model_file), file=sys.stderr, end='', flush=True)
     model = load_model(model_file)
     print('done', file=sys.stderr)
     try:
@@ -90,9 +91,10 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
     using_read_starts = start_model is not None
     using_read_ends = end_model is not None
 
-    print('', file=sys.stderr)
+    print_classification_progress(0, len(fast5_files), 'fast5s')
     print_output_header(args.verbose, using_read_starts, using_read_ends)
 
+    classifications = {}
     for fast5_batch in chunker(fast5_files, args.batch_size):
         read_ids, signals = [],  []
 
@@ -118,6 +120,7 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
             else:  # ends only
                 final_barcode_call = end_calls[i]
             output = [read_id, final_barcode_call]
+            classifications[read_id] = final_barcode_call
 
             if args.verbose:
                 output += ['%.2f' % x for x in start_probs[i]]
@@ -127,13 +130,20 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
                     output.append(end_calls[i])
             print('\t'.join(output))
 
+        print_classification_progress(len(classifications), len(fast5_files), 'fast5s')
+
+    print('', file=sys.stderr)
+    print_summary_table(classifications)
+
 
 def classify_training_data(input_file, start_model, start_input_size, end_model, end_input_size,
                            output_size, args):
     using_read_starts = start_model is not None
     using_read_ends = end_model is not None
 
-    print('', file=sys.stderr)
+    num_lines = sum(1 for _ in open(input_file))
+    print_classification_progress(0, num_lines, 'training data')
+
     print_output_header(args.verbose, using_read_starts, using_read_ends)
 
     assert not(using_read_starts and using_read_ends)
@@ -144,6 +154,7 @@ def classify_training_data(input_file, start_model, start_input_size, end_model,
         model = end_model
         input_size = end_input_size
 
+    classifications = {}
     with open(input_file, 'rt') as training_data:
         line_num = 0
         finished = False
@@ -171,12 +182,17 @@ def classify_training_data(input_file, start_model, start_input_size, end_model,
             for i, read_id in enumerate(read_ids):
                 final_barcode_call = start_calls[i]
                 output = [read_id, final_barcode_call]
+                classifications[read_id] = final_barcode_call
                 if args.verbose:
                     output += ['%.2f' % x for x in start_probs[i]]
                 print('\t'.join(output))
 
+            print_classification_progress(len(classifications), num_lines, 'training data')
             if finished:
                 break
+
+    print('', file=sys.stderr)
+    print_summary_table(classifications)
 
 
 def determine_input_type(input_file_or_dir):
@@ -311,3 +327,29 @@ def check_input_size(input_size, scan_size):
         sys.exit('Error: --scan_size must be a multiple of half the model input size\n'
                  'acceptable values for --scan_size are '
                  '{}'.format(', '.join(acceptable_scan_sizes)))
+
+
+def print_classification_progress(completed, total, label):
+    percent = 100.0 * completed / total
+    print('\rClassifying {}: {} / {} ({:.1f}%)'.format(label, completed, total, percent),
+          file=sys.stderr, end='', flush=True)
+
+
+def print_summary_table(classifications):
+    counts = collections.defaultdict(int)
+    for barcode in classifications.values():
+        counts[barcode] += 1
+    print('', file=sys.stderr)
+    print('Barcode     Count', file=sys.stderr)
+
+    number_barcodes, string_barcodes = [], []
+    for barcode in counts.keys():
+        try:
+            number_barcodes.append(int(barcode))
+        except ValueError:
+            string_barcodes.append(barcode)
+    sorted_barcodes = sorted(number_barcodes) + sorted(string_barcodes)
+
+    for barcode in sorted_barcodes:
+        print('{:>7} {:>9}'.format(barcode, counts[str(barcode)]), file=sys.stderr)
+    print('', file=sys.stderr)

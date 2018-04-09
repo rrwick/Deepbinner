@@ -80,19 +80,6 @@ def classify_subparser(subparsers):
     model_args.add_argument('-e', '--end_model', type=str, required=False,
                             help='Model trained on the ends of reads')
 
-    output_args = group.add_argument_group('Output')
-    output_args.add_argument('--fastq_file', type=str, required=False,
-                             help='A fastq file (can be gzipped) of basecalled reads')
-    output_args.add_argument('--fastq_dir', type=str, required=False,
-                             help='A directory of fastq files (will be searched recursively, files '
-                                  'can be gzipped) of basecalled reads')
-    output_args.add_argument('--fastq_out_dir', type=str, required=False,
-                             help='Output directory for binned reads (must be used with either '
-                                  '--fastq_file or --fastq_dir')
-    output_args.add_argument('--verbose', action='store_true',
-                             help='Include the CNN probabilities for all barcodes in the results '
-                                  '(default: just show the final barcode call)')
-
     barcode_args = group.add_argument_group('Barcoding')
     barcode_args.add_argument('--scan_size', type=float, required=False, default=6144,
                               help="This much of a read's start/end signal will examined for "
@@ -108,6 +95,9 @@ def classify_subparser(subparsers):
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--batch_size', type=int, required=False, default=128,
                             help='CNN batch size')
+    other_args.add_argument('--verbose', action='store_true',
+                            help='Include the CNN probabilities for all barcodes in the results '
+                                 '(default: just show the final barcode call)')
     other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                             help='Show this help message and exit')
 
@@ -190,12 +180,6 @@ def refine_subparser(subparsers):
 
 
 def check_classify_arguments(args):
-    if args.fastq_file is not None and args.fastq_dir is not None:
-        sys.exit('Error: --fastq_file and --fastq_dir are mutually exclusive')
-    if args.fastq_file is not None and args.fastq_out_dir is None:
-        sys.exit('Error: --fastq_out_dir must be used with --fastq_file')
-    if args.fastq_dir is not None and args.fastq_out_dir is None:
-        sys.exit('Error: --fastq_out_dir must be used with --fastq_dir')
     model_count = (0 if args.start_model is None else 1) + (0 if args.end_model is None else 1)
     if model_count == 0:
         sys.exit('Error: you must provide at least one model')
