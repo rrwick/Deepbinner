@@ -59,12 +59,10 @@ def main():
         classify(args)
 
     if args.subparser_name == 'bin':
-        check_bin_arguments(args)
         from .bin import bin_reads
         bin_reads(args)
 
     if args.subparser_name == 'realtime':
-        check_realtime_arguments(args)
         from .realtime import realtime
         realtime(args)
 
@@ -128,12 +126,12 @@ def bin_subparser(subparsers):
                                   formatter_class=MyHelpFormatter, add_help=False)
 
     required_args = group.add_argument_group('Required')
-    required_args.add_argument('--class', type=str,
+    required_args.add_argument('--classes', type=str, required=True,
                                help='Deepbinner classification file (made with the deepbinner '
                                     'classify command)')
-    required_args.add_argument('--reads', type=str,
+    required_args.add_argument('--reads', type=str, required=True,
                                help='FASTA or FASTQ reads')
-    required_args.add_argument('--out_dir', type=str,
+    required_args.add_argument('--out_dir', type=str, required=True,
                                help='Directory to output binned read files')
 
     other_args = group.add_argument_group('Other')
@@ -242,14 +240,6 @@ def check_classify_arguments(args):
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
-
-
-def check_bin_arguments(args):
-    pass
-
-
-def check_realtime_arguments(args):
-    pass
 
 
 if __name__ == '__main__':
