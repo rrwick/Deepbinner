@@ -92,7 +92,14 @@ def classify_subparser(subparsers):
                                  help='One of the following: a single fast5 file, a directory of '
                                       'fast5 files (will be searched recursively) or a '
                                       'tab-delimited file of training data')
+    classify_and_realtime_options(group, include_verbose=True)
 
+
+def classify_and_realtime_options(group, include_verbose):
+    """
+    A few options are used in both the classify and realtime command, so they are described in this
+    separate function.
+    """
     model_args = group.add_argument_group('Models (at least one is required)')
     model_args.add_argument('-s', '--start_model', type=str, required=False,
                             help='Model trained on the starts of reads')
@@ -113,10 +120,11 @@ def classify_subparser(subparsers):
 
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--batch_size', type=int, required=False, default=128,
-                            help='CNN batch size')
-    other_args.add_argument('--verbose', action='store_true',
-                            help='Include the CNN probabilities for all barcodes in the results '
-                                 '(default: just show the final barcode call)')
+                            help='Neural network batch size')
+    if include_verbose:
+        other_args.add_argument('--verbose', action='store_true',
+                                help='Include the output probabilities for all barcodes in the '
+                                     'results (default: just show the final barcode call)')
     other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                             help='Show this help message and exit')
 
@@ -144,14 +152,12 @@ def realtime_subparser(subparsers):
                                   formatter_class=MyHelpFormatter, add_help=False)
 
     required_args = group.add_argument_group('Required')
-    required_args.add_argument('--in_dir', type=str,
+    required_args.add_argument('--in_dir', type=str, required=True,
                                help='Directory where sequencer deposits fast5 files')
-    required_args.add_argument('--out_dir', type=str,
+    required_args.add_argument('--out_dir', type=str, required=True,
                                help='Directory to output binned fast5 files')
 
-    other_args = group.add_argument_group('Other')
-    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
-                            help='Show this help message and exit')
+    classify_and_realtime_options(group, include_verbose=False)
 
 
 def porechop_subparser(subparsers):
@@ -168,7 +174,8 @@ def porechop_subparser(subparsers):
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1024,
-                       help='Amount of signal (number of samples) that will be used in the CNN')
+                       help='Amount of signal (number of samples) that will be used in the neural '
+                            'network')
     group.add_argument('--max_start_end_margin', type=float, required=False, default=6000,
                        help="Up to this much of a read's start/end signal will be saved")
     group.add_argument('--min_signal_length', type=float, required=False, default=20000,
@@ -188,7 +195,8 @@ def balance_subparser(subparsers):
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1024,
-                       help='Amount of signal (number of samples) that will be used in the CNN')
+                       help='Amount of signal (number of samples) that will be used in the neural '
+                            'network')
     group.add_argument('--none_bin_rate', type=float, required=False, default=0.333333,
                        help='This fraction of the training samples will be no barcode signal')
     group.add_argument('--plot', action='store_true',
@@ -196,7 +204,7 @@ def balance_subparser(subparsers):
 
 
 def train_subparser(subparsers):
-    group = subparsers.add_parser('train', description='Train the CNN',
+    group = subparsers.add_parser('train', description='Train the neural network',
                                   formatter_class=MyHelpFormatter)
 
     # Positional arguments
@@ -207,7 +215,8 @@ def train_subparser(subparsers):
 
     # Optional arguments
     group.add_argument('--signal_size', type=int, required=False, default=1024,
-                       help='Amount of signal (number of samples) that will be used in the CNN')
+                       help='Amount of signal (number of samples) that will be used in the neural '
+                            'network')
     group.add_argument('--barcode_count', type=int, required=False, default=12,
                        help='The number of discrete barcodes')
     group.add_argument('--epochs', type=int, required=False, default=100,

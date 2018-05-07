@@ -22,34 +22,13 @@ from .trim_signal import normalise
 
 
 def classify(args):
-    using_read_starts = args.start_model is not None
-    using_read_ends = args.end_model is not None
+    start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
+        load_and_check_models(args.start_model, args.end_model, args.scan_size)
 
     input_type = determine_input_type(args.input)
-    model_count = (1 if using_read_starts else 0) + (1 if using_read_ends else 0)
     if input_type == 'training_data' and model_count == 2:
         sys.exit('Error: training data can only be classified using a single model')
-
     print('', file=sys.stderr)
-
-    start_model, start_input_size, start_output_size = None, None, None
-    if using_read_starts:
-        start_model, start_input_size, start_output_size = load_trained_model(args.start_model)
-        check_input_size(start_input_size, args.scan_size)
-
-    end_model, end_input_size, end_output_size = None, None, None
-    if using_read_ends:
-        end_model, end_input_size, end_output_size = load_trained_model(args.end_model)
-        check_input_size(end_input_size, args.scan_size)
-
-    if model_count == 2:
-        if start_output_size != end_output_size:
-            sys.exit('Error: two models have different number of barcode classes')
-        output_size = start_output_size
-    elif using_read_starts:  # start only
-        output_size = start_output_size
-    else:  # end only
-        output_size = end_output_size
 
     if input_type == 'directory':
         classify_fast5_files(find_all_fast5s(args.input, verbose=True),
@@ -64,6 +43,32 @@ def classify(args):
                                end_input_size, output_size, args)
     else:
         assert False
+
+
+def load_and_check_models(start_model_filename, end_model_filename, scan_size):
+    using_read_starts = start_model_filename is not None
+    using_read_ends = end_model_filename is not None
+    model_count = (1 if using_read_starts else 0) + (1 if using_read_ends else 0)
+
+    start_model, start_input_size, start_output_size = None, None, None
+    if using_read_starts:
+        start_model, start_input_size, start_output_size = load_trained_model(start_model_filename)
+        check_input_size(start_input_size, scan_size)
+
+    end_model, end_input_size, end_output_size = None, None, None
+    if using_read_ends:
+        end_model, end_input_size, end_output_size = load_trained_model(end_model_filename)
+        check_input_size(end_input_size, scan_size)
+
+    if model_count == 2:
+        if start_output_size != end_output_size:
+            sys.exit('Error: two models have different number of barcode classes')
+        output_size = start_output_size
+    elif using_read_starts:  # start only
+        output_size = start_output_size
+    else:  # end only
+        output_size = end_output_size
+    return start_model, start_input_size, end_model, end_input_size, output_size, model_count
 
 
 def load_trained_model(model_file):
@@ -87,19 +92,20 @@ def load_trained_model(model_file):
 
 
 def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, end_input_size,
-                         output_size, args):
+                         output_size, args, summary_table=True):
     using_read_starts = start_model is not None
     using_read_ends = end_model is not None
 
     print_classification_progress(0, len(fast5_files), 'fast5s')
     print_output_header(args.verbose, using_read_starts, using_read_ends)
 
-    classifications = {}
+    classifications, read_id_to_fast5_file = {}, {}
     for fast5_batch in chunker(fast5_files, args.batch_size):
         read_ids, signals = [],  []
 
         for i, fast5_file in enumerate(fast5_batch):
             read_id, signal = get_read_id_and_signal(fast5_file)
+            read_id_to_fast5_file[read_id] = fast5_file
             read_ids.append(read_id)
             signals.append(signal)
 
@@ -132,8 +138,10 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
 
         print_classification_progress(len(classifications), len(fast5_files), 'fast5s')
 
-    print('', file=sys.stderr)
-    print_summary_table(classifications)
+    if summary_table:
+        print('', file=sys.stderr)
+        print_summary_table(classifications)
+    return classifications, read_id_to_fast5_file
 
 
 def classify_training_data(input_file, start_model, start_input_size, end_model, end_input_size,
