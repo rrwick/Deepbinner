@@ -45,19 +45,21 @@ def classify(args):
         assert False
 
 
-def load_and_check_models(start_model_filename, end_model_filename, scan_size):
+def load_and_check_models(start_model_filename, end_model_filename, scan_size, out_dest=sys.stderr):
     using_read_starts = start_model_filename is not None
     using_read_ends = end_model_filename is not None
     model_count = (1 if using_read_starts else 0) + (1 if using_read_ends else 0)
 
     start_model, start_input_size, start_output_size = None, None, None
     if using_read_starts:
-        start_model, start_input_size, start_output_size = load_trained_model(start_model_filename)
+        start_model, start_input_size, start_output_size = load_trained_model(start_model_filename,
+                                                                              out_dest=out_dest)
         check_input_size(start_input_size, scan_size)
 
     end_model, end_input_size, end_output_size = None, None, None
     if using_read_ends:
-        end_model, end_input_size, end_output_size = load_trained_model(end_model_filename)
+        end_model, end_input_size, end_output_size = load_trained_model(end_model_filename,
+                                                                        out_dest=out_dest)
         check_input_size(end_input_size, scan_size)
 
     if model_count == 2:
@@ -71,12 +73,12 @@ def load_and_check_models(start_model_filename, end_model_filename, scan_size):
     return start_model, start_input_size, end_model, end_input_size, output_size, model_count
 
 
-def load_trained_model(model_file):
+def load_trained_model(model_file, out_dest=sys.stderr):
     if not pathlib.Path(model_file).is_file():
         sys.exit('Error: {} does not exist'.format(model_file))
-    print('Loading {}... '.format(model_file), file=sys.stderr, end='', flush=True)
+    print('Loading {}... '.format(model_file), file=out_dest, end='', flush=True)
     model = load_model(model_file)
-    print('done', file=sys.stderr)
+    print('done', file=out_dest)
     try:
         assert len(model.inputs) == 1
         input_shape = model.inputs[0].shape
@@ -92,12 +94,18 @@ def load_trained_model(model_file):
 
 
 def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, end_input_size,
-                         output_size, args, summary_table=True):
+                         output_size, args, full_output=True):
+    if full_output:
+        out_dest = sys.stderr
+    else:
+        out_dest = sys.stdout
+
     using_read_starts = start_model is not None
     using_read_ends = end_model is not None
 
-    print_classification_progress(0, len(fast5_files), 'fast5s')
-    print_output_header(args.verbose, using_read_starts, using_read_ends)
+    print_classification_progress(0, len(fast5_files), 'fast5s', out_dest=out_dest)
+    if full_output:
+        print_output_header(args.verbose, using_read_starts, using_read_ends)
 
     classifications, read_id_to_fast5_file = {}, {}
     for fast5_batch in chunker(fast5_files, args.batch_size):
@@ -134,11 +142,13 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
                     output.append(start_calls[i])
                     output += ['%.2f' % x for x in end_probs[i]]
                     output.append(end_calls[i])
-            print('\t'.join(output))
+            if full_output:
+                print('\t'.join(output))
 
-        print_classification_progress(len(classifications), len(fast5_files), 'fast5s')
+        print_classification_progress(len(classifications), len(fast5_files), 'fast5s',
+                                      out_dest=out_dest)
 
-    if summary_table:
+    if full_output:
         print('', file=sys.stderr)
         print_summary_table(classifications)
     return classifications, read_id_to_fast5_file
@@ -337,10 +347,10 @@ def check_input_size(input_size, scan_size):
                  '{}'.format(', '.join(acceptable_scan_sizes)))
 
 
-def print_classification_progress(completed, total, label):
+def print_classification_progress(completed, total, label, out_dest=sys.stderr):
     percent = 100.0 * completed / total
     print('\rClassifying {}: {} / {} ({:.1f}%)'.format(label, completed, total, percent),
-          file=sys.stderr, end='', flush=True)
+          file=out_dest, end='', flush=True)
 
 
 def print_summary_table(classifications):

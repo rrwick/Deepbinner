@@ -54,7 +54,7 @@ def main():
     args = parser.parse_args()
 
     if args.subparser_name == 'classify':
-        check_classify_arguments(args)
+        check_classify_and_realtime_arguments(args)
         from .classify import classify
         classify(args)
 
@@ -63,6 +63,7 @@ def main():
         bin_reads(args)
 
     if args.subparser_name == 'realtime':
+        check_classify_and_realtime_arguments(args)
         from .realtime import realtime
         realtime(args)
 
@@ -240,7 +241,7 @@ def refine_subparser(subparsers):
                        help='Training data barcode calls produced by the classify command')
 
 
-def check_classify_arguments(args):
+def check_classify_and_realtime_arguments(args):
     model_count = (0 if args.start_model is None else 1) + (0 if args.end_model is None else 1)
     if model_count == 0:
         sys.exit('Error: you must provide at least one model')
