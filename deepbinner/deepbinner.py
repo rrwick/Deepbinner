@@ -21,12 +21,24 @@ def main():
     parser = MyParser(description='Deepbinner: a deep convolutional neural network '
                                   'barcode demultiplexer for Oxford Nanopore reads',
                       formatter_class=MyHelpFormatter, add_help=False)
+
     subparsers = parser.add_subparsers(title='Commands', dest='subparser_name')
     classify_subparser(subparsers)
+    bin_subparser(subparsers)
+    realtime_subparser(subparsers)
     porechop_subparser(subparsers)
     balance_subparser(subparsers)
     train_subparser(subparsers)
     refine_subparser(subparsers)
+
+    longest_choice_name = max(len(c) for c in subparsers.choices)
+    subparsers.help = 'R|'
+    for choice, choice_parser in subparsers.choices.items():
+        padding = ' ' * (longest_choice_name - len(choice))
+        subparsers.help += choice + ': ' + padding
+        d = choice_parser.description
+        subparsers.help += d[0].lower() + d[1:]  # don't capitalise the first letter
+        subparsers.help += '\n'
 
     help_args = parser.add_argument_group('Help')
     help_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
@@ -46,6 +58,16 @@ def main():
         from .classify import classify
         classify(args)
 
+    if args.subparser_name == 'bin':
+        check_bin_arguments(args)
+        from .bin import bin_reads
+        bin_reads(args)
+
+    if args.subparser_name == 'realtime':
+        check_realtime_arguments(args)
+        from .realtime import realtime
+        realtime(args)
+
     elif args.subparser_name == 'porechop':
         from .porechop import training_data_from_porechop
         training_data_from_porechop(args)
@@ -64,10 +86,9 @@ def main():
 
 
 def classify_subparser(subparsers):
-    group = subparsers.add_parser('classify', description='Classify reads using the CNN',
+    group = subparsers.add_parser('classify', description='Classify fast5 reads',
                                   formatter_class=MyHelpFormatter, add_help=False)
 
-    # Positional arguments
     positional_args = group.add_argument_group('Positional')
     positional_args.add_argument('input', type=str,
                                  help='One of the following: a single fast5 file, a directory of '
@@ -102,6 +123,39 @@ def classify_subparser(subparsers):
                             help='Show this help message and exit')
 
 
+def bin_subparser(subparsers):
+    group = subparsers.add_parser('bin', description='Bin fasta/q reads',
+                                  formatter_class=MyHelpFormatter, add_help=False)
+
+    required_args = group.add_argument_group('Required')
+    required_args.add_argument('--class', type=str,
+                               help='Deepbinner classification file (made with the deepbinner '
+                                    'classify command)')
+    required_args.add_argument('--reads', type=str,
+                               help='FASTA or FASTQ reads')
+    required_args.add_argument('--out_dir', type=str,
+                               help='Directory to output binned read files')
+
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
+
+
+def realtime_subparser(subparsers):
+    group = subparsers.add_parser('realtime', description='Sort fast5 files during sequencing',
+                                  formatter_class=MyHelpFormatter, add_help=False)
+
+    required_args = group.add_argument_group('Required')
+    required_args.add_argument('--in_dir', type=str,
+                               help='Directory where sequencer deposits fast5 files')
+    required_args.add_argument('--out_dir', type=str,
+                               help='Directory to output binned fast5 files')
+
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
+
+
 def porechop_subparser(subparsers):
     group = subparsers.add_parser('porechop', description='Prepare training data using Porechop',
                                   formatter_class=MyHelpFormatter)
@@ -125,7 +179,7 @@ def porechop_subparser(subparsers):
 
 
 def balance_subparser(subparsers):
-    group = subparsers.add_parser('balance', description='Select balanced set of training samples',
+    group = subparsers.add_parser('balance', description='Select balanced training set',
                                   formatter_class=MyHelpFormatter)
 
     # Positional arguments
@@ -188,6 +242,14 @@ def check_classify_arguments(args):
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
+
+
+def check_bin_arguments(args):
+    pass
+
+
+def check_realtime_arguments(args):
+    pass
 
 
 if __name__ == '__main__':
