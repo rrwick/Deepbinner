@@ -11,6 +11,11 @@ details. You should have received a copy of the GNU General Public License along
 If not, see <http://www.gnu.org/licenses/>.
 """
 
+# Silence some warnings so the output isn't cluttered.
+import warnings
+warnings.simplefilter('ignore', DeprecationWarning)
+warnings.simplefilter('ignore', FutureWarning)
+
 import collections
 import sys
 import pathlib
@@ -137,8 +142,12 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
             classifications[read_id] = final_barcode_call
 
             if args.verbose:
-                output += ['%.2f' % x for x in start_probs[i]]
-                if using_read_ends:
+                if using_read_starts and not using_read_ends:
+                    output += ['%.2f' % x for x in start_probs[i]]
+                if using_read_ends and not using_read_starts:
+                    output += ['%.2f' % x for x in end_probs[i]]
+                if using_read_starts and using_read_ends:
+                    output += ['%.2f' % x for x in start_probs[i]]
                     output.append(start_calls[i])
                     output += ['%.2f' % x for x in end_probs[i]]
                     output.append(end_calls[i])

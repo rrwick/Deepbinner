@@ -11,6 +11,11 @@ details. You should have received a copy of the GNU General Public License along
 If not, see <http://www.gnu.org/licenses/>.
 """
 
+# Silence some warnings so the output isn't cluttered.
+import warnings
+warnings.simplefilter('ignore', DeprecationWarning)
+warnings.simplefilter('ignore', FutureWarning)
+
 import os
 import h5py
 import sys

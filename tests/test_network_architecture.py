@@ -11,14 +11,21 @@ details. You should have received a copy of the GNU General Public License along
 If not, see <http://www.gnu.org/licenses/>.
 """
 
-import unittest
+import warnings
+warnings.simplefilter('ignore', DeprecationWarning)
+warnings.simplefilter('ignore', FutureWarning)
 
+import unittest
 from keras.layers import Input
 from keras.models import Model
 import deepbinner.network_architecture
 
 
 class TestNetworkArchitecture(unittest.TestCase):
+
+    def setUp(self):
+        warnings.simplefilter('ignore', DeprecationWarning)
+        warnings.simplefilter('ignore', FutureWarning)
 
     def test_12_barcodes(self):
         inputs = Input(shape=(1024, 1))

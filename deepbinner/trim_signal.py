@@ -2,6 +2,9 @@
 Copyright 2018 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Deepbinner/
 
+This file takes care of trimming read signals to remove open pore signal before/after a read's
+start/end. It's all fairly ad hoc and could probably use some more attention later.
+
 This file is part of Deepbinner. Deepbinner is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version. Deepbinner is distributed
@@ -12,11 +15,6 @@ If not, see <http://www.gnu.org/licenses/>.
 """
 
 import numpy as np
-
-"""
-This file takes care of trimming read signals to remove open pore signal before/after a read's
-start/end. It's all fairly ad hoc and could use some more attention later.
-"""
 
 
 class CannotTrim(IndexError):
