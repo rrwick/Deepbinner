@@ -42,7 +42,6 @@ class TestLoadFast5s(unittest.TestCase):
     def test_get_read_id_and_signal_1(self):
         fast5 = self.fast5_dir / '5210_N125509_20170424_FN2002039725_MN19691_sequencing_run_' \
                                  'klebs_033_75349_ch112_read218_strand.fast5'
-        print(fast5)
         read_id, signal = deepbinner.load_fast5s.get_read_id_and_signal(fast5)
         self.assertEqual(read_id, '4de68977-34ab-4c3e-8adf-abfa45d47690')
         self.assertEqual(len(signal), 21962)
