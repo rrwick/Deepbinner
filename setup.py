@@ -21,6 +21,8 @@ setup(name='Deepbinner',
       url='https://github.com/rrwick/Deepbinner',
       author='Ryan Wick',
       author_email='rrwick@gmail.com',
+      license='GPLv3',
+      packages=['deepbinner'],
       entry_points={"console_scripts": ['deepbinner = deepbinner.deepbinner:main']},
       include_package_data=True,
       zip_safe=False)
