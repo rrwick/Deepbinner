@@ -22,11 +22,15 @@ import pathlib
 import h5py
 import numpy as np
 from keras.models import load_model
+from keras import backend
+import tensorflow as tf
 from .load_fast5s import find_all_fast5s, get_read_id_and_signal
 from .trim_signal import normalise
 
 
 def classify(args):
+    set_tensorflow_threads(args.threads)
+
     start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
         load_and_check_models(args.start_model, args.end_model, args.scan_size)
 
@@ -380,3 +384,12 @@ def print_summary_table(classifications):
     for barcode in sorted_barcodes:
         print('{:>7} {:>9}'.format(barcode, counts[str(barcode)]), file=sys.stderr)
     print('', file=sys.stderr)
+
+
+def set_tensorflow_threads(thread_count):
+    config = tf.ConfigProto(intra_op_parallelism_threads=thread_count,
+                            inter_op_parallelism_threads=thread_count,
+                            allow_soft_placement=True,
+                            device_count={'CPU': thread_count})
+    session = tf.Session(config=config)
+    backend.set_session(session)

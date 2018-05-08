@@ -122,6 +122,8 @@ def classify_and_realtime_options(group, include_verbose):
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--batch_size', type=int, required=False, default=128,
                             help='Neural network batch size')
+    other_args.add_argument('--threads', type=int, required=False, default=8,
+                            help='Number of CPU threads used by TensorFlow')
     if include_verbose:
         other_args.add_argument('--verbose', action='store_true',
                                 help='Include the output probabilities for all barcodes in the '

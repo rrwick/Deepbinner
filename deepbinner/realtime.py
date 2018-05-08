@@ -18,7 +18,7 @@ import shutil
 import sys
 import time
 
-from .classify import load_and_check_models, classify_fast5_files
+from .classify import load_and_check_models, classify_fast5_files, set_tensorflow_threads
 from .bin import class_to_class_names
 
 
@@ -27,6 +27,7 @@ def realtime(args):
     args.verbose = False
     nested_out_dir = pathlib.Path(args.in_dir) in pathlib.Path(args.out_dir).parents
 
+    set_tensorflow_threads(args.threads)
     start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
         load_and_check_models(args.start_model, args.end_model, args.scan_size,
                               out_dest=sys.stdout)
