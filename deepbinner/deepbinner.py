@@ -119,11 +119,19 @@ def classify_and_realtime_options(group, include_verbose):
                                    'end) require both barcode calls to match to make the final '
                                    'call')
 
+    perf_args = group.add_argument_group('Performance')
+    perf_args.add_argument('--batch_size', type=int, required=False, default=256,
+                           help='Neural network batch size')
+    perf_args.add_argument('--intra_op_parallelism_threads', type=int, required=False, default=4,
+                           help='TensorFlow\'s intra_op_parallelism_threads config option')
+    perf_args.add_argument('--inter_op_parallelism_threads', type=int, required=False, default=1,
+                           help='TensorFlow\'s inter_op_parallelism_threads config option')
+    perf_args.add_argument('--device_count', type=int, required=False, default=1,
+                           help='TensorFlow\'s device_count config option')
+    perf_args.add_argument('--omp_num_threads', type=int, required=False, default=16,
+                           help='OMP_NUM_THREADS environment variable value')
+
     other_args = group.add_argument_group('Other')
-    other_args.add_argument('--batch_size', type=int, required=False, default=128,
-                            help='Neural network batch size')
-    other_args.add_argument('--threads', type=int, required=False, default=8,
-                            help='Number of CPU threads used by TensorFlow')
     if include_verbose:
         other_args.add_argument('--verbose', action='store_true',
                                 help='Include the output probabilities for all barcodes in the '

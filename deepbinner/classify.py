@@ -16,6 +16,7 @@ import warnings
 warnings.simplefilter('ignore', DeprecationWarning)
 warnings.simplefilter('ignore', FutureWarning)
 
+import os
 import collections
 import sys
 import pathlib
@@ -386,10 +387,11 @@ def print_summary_table(classifications):
     print('', file=sys.stderr)
 
 
-def set_tensorflow_threads(thread_count):
-    config = tf.ConfigProto(intra_op_parallelism_threads=thread_count,
-                            inter_op_parallelism_threads=thread_count,
+def set_tensorflow_threads(args):
+    os.environ['OMP_NUM_THREADS'] = str(args.omp_num_threads)
+    config = tf.ConfigProto(intra_op_parallelism_threads=args.intra_op_parallelism_threads,
+                            inter_op_parallelism_threads=args.inter_op_parallelism_threads,
                             allow_soft_placement=True,
-                            device_count={'CPU': thread_count})
+                            device_count={'CPU': args.device_count})
     session = tf.Session(config=config)
     backend.set_session(session)
