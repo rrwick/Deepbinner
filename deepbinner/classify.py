@@ -30,7 +30,7 @@ from .trim_signal import normalise
 
 
 def classify(args):
-    set_tensorflow_threads(args.threads)
+    set_tensorflow_threads(args)
 
     start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
         load_and_check_models(args.start_model, args.end_model, args.scan_size)
