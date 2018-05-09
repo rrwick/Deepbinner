@@ -15,6 +15,7 @@ Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanop
      * [Step 1: classifying fast5 reads](#step-1-classifying-fast5-reads)
      * [Step 2: binning basecalled reads](#step-2-binning-basecalled-reads)
   * [Using Deepbinner before basecalling](#using-deepbinner-before-basecalling)
+  * [Performance](#performance)
   * [Training](#training)
   * [Contributing](#contributing)
   * [License](#license)
@@ -114,30 +115,42 @@ usage: deepbinner classify [-s START_MODEL] [-e END_MODEL] [--scan_size SCAN_SIZ
 Classify fast5 reads
 
 Positional:
-  input                            One of the following: a single fast5 file, a directory of fast5
-                                   files (will be searched recursively) or a tab-delimited file of
-                                   training data
+  input                          One of the following: a single fast5 file, a directory of fast5
+                                 files (will be searched recursively) or a tab-delimited file of
+                                 training data
 
 Models (at least one is required):
   -s START_MODEL, --start_model START_MODEL
-                                   Model trained on the starts of reads
+                                 Model trained on the starts of reads
   -e END_MODEL, --end_model END_MODEL
-                                   Model trained on the ends of reads
+                                 Model trained on the ends of reads
 
 Barcoding:
-  --scan_size SCAN_SIZE            This much of a read's start/end signal will examined for barcode
-                                   signals (default: 6144)
-  --score_diff SCORE_DIFF          For a read to be classified, there must be this much difference
-                                   between the best and second-best barcode scores (default: 0.5)
-  --require_both                   When classifying reads using two models (read start and read end)
-                                   require both barcode calls to match to make the final call (default:
-                                   False)
+  --scan_size SCAN_SIZE          This much of a read's start/end signal will examined for barcode
+                                 signals (default: 6144)
+  --score_diff SCORE_DIFF        For a read to be classified, there must be this much difference
+                                 between the best and second-best barcode scores (default: 0.5)
+  --require_both                 When classifying reads using two models (read start and read end)
+                                 require both barcode calls to match to make the final call
+                                 (default: False)
+
+Performance:
+  --batch_size BATCH_SIZE        Neural network batch size (default: 256)
+  --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
+                                 TensorFlow's intra_op_parallelism_threads config option (default:
+                                 4)
+  --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
+                                 TensorFlow's inter_op_parallelism_threads config option (default:
+                                 1)
+  --device_count DEVICE_COUNT    TensorFlow's device_count config option (default: 1)
+  --omp_num_threads OMP_NUM_THREADS
+                                 OMP_NUM_THREADS environment variable value (default: 16)
 
 Other:
-  --batch_size BATCH_SIZE          Neural network batch size (default: 128)
-  --verbose                        Include the output probabilities for all barcodes in the results
-                                   (default: just show the final barcode call)
-  -h, --help                       Show this help message and exit
+  --verbose                      Include the output probabilities for all barcodes in the results
+                                 (default: just show the final barcode call)
+  -h, --help                     Show this help message and exit
+
 ```
 
 
@@ -188,28 +201,47 @@ usage: deepbinner realtime --in_dir IN_DIR --out_dir OUT_DIR [-s START_MODEL] [-
 Sort fast5 files during sequencing
 
 Required:
-  --in_dir IN_DIR                  Directory where sequencer deposits fast5 files
-  --out_dir OUT_DIR                Directory to output binned fast5 files
+  --in_dir IN_DIR                Directory where sequencer deposits fast5 files
+  --out_dir OUT_DIR              Directory to output binned fast5 files
 
 Models (at least one is required):
   -s START_MODEL, --start_model START_MODEL
-                                   Model trained on the starts of reads
+                                 Model trained on the starts of reads
   -e END_MODEL, --end_model END_MODEL
-                                   Model trained on the ends of reads
+                                 Model trained on the ends of reads
 
 Barcoding:
-  --scan_size SCAN_SIZE            This much of a read's start/end signal will examined for barcode
-                                   signals (default: 6144)
-  --score_diff SCORE_DIFF          For a read to be classified, there must be this much difference
-                                   between the best and second-best barcode scores (default: 0.5)
-  --require_both                   When classifying reads using two models (read start and read end)
-                                   require both barcode calls to match to make the final call (default:
-                                   False)
+  --scan_size SCAN_SIZE          This much of a read's start/end signal will examined for barcode
+                                 signals (default: 6144)
+  --score_diff SCORE_DIFF        For a read to be classified, there must be this much difference
+                                 between the best and second-best barcode scores (default: 0.5)
+  --require_both                 When classifying reads using two models (read start and read end)
+                                 require both barcode calls to match to make the final call
+                                 (default: False)
+
+Performance:
+  --batch_size BATCH_SIZE        Neural network batch size (default: 256)
+  --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
+                                 TensorFlow's intra_op_parallelism_threads config option (default:
+                                 4)
+  --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
+                                 TensorFlow's inter_op_parallelism_threads config option (default:
+                                 1)
+  --device_count DEVICE_COUNT    TensorFlow's device_count config option (default: 1)
+  --omp_num_threads OMP_NUM_THREADS
+                                 OMP_NUM_THREADS environment variable value (default: 16)
 
 Other:
-  --batch_size BATCH_SIZE          Neural network batch size (default: 128)
-  -h, --help                       Show this help message and exit
+  -h, --help                     Show this help message and exit
 ```
+
+
+
+
+## Performance
+
+Deepbinner lives up to its name by using a very _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 25 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
+
 
 
 

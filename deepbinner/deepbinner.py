@@ -122,13 +122,13 @@ def classify_and_realtime_options(group, include_verbose):
     perf_args = group.add_argument_group('Performance')
     perf_args.add_argument('--batch_size', type=int, required=False, default=256,
                            help='Neural network batch size')
-    perf_args.add_argument('--intra_op_parallelism_threads', type=int, required=False, default=4,
+    perf_args.add_argument('--intra_op_parallelism_threads', type=int, required=False, default=12,
                            help='TensorFlow\'s intra_op_parallelism_threads config option')
     perf_args.add_argument('--inter_op_parallelism_threads', type=int, required=False, default=1,
                            help='TensorFlow\'s inter_op_parallelism_threads config option')
     perf_args.add_argument('--device_count', type=int, required=False, default=1,
                            help='TensorFlow\'s device_count config option')
-    perf_args.add_argument('--omp_num_threads', type=int, required=False, default=16,
+    perf_args.add_argument('--omp_num_threads', type=int, required=False, default=12,
                            help='OMP_NUM_THREADS environment variable value')
 
     other_args = group.add_argument_group('Other')
