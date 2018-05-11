@@ -1,6 +1,15 @@
 <p align="center"><img src="images/logo-stripes-dna.png" alt="Deepbinner" width="100%"></p>
 
-Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanoporetech.com/) sequencing reads. It does this with a deep [convolutional neural network](https://adeshpande3.github.io/adeshpande3.github.io/A-Beginner's-Guide-To-Understanding-Convolutional-Neural-Networks/) classifier, using many of the [architectural advances](https://towardsdatascience.com/neural-network-architectures-156e5bad51ba) that have proven successful in the field of image classification. Unlike other demultiplexers (e.g. Albacore and [Porechop](https://github.com/rrwick/Porechop)), Deepbinner identifies barcodes from the raw signal (a.k.a. squiggle). This gives it greater sensitivity resulting in fewer unclassified reads. It also allows you to demultiplex raw fast5 files, which is useful if you need to run signal-level analyses (like [Nanopolish](https://github.com/jts/nanopolish)) on your samples.
+Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanoporetech.com/) sequencing reads. It does this with a deep [convolutional neural network](https://adeshpande3.github.io/adeshpande3.github.io/A-Beginner's-Guide-To-Understanding-Convolutional-Neural-Networks/) classifier, using many of the [architectural advances](https://towardsdatascience.com/neural-network-architectures-156e5bad51ba) that have proven successful in image classification. Unlike other demultiplexers (e.g. Albacore and [Porechop](https://github.com/rrwick/Porechop)), Deepbinner identifies barcodes from the raw signal (a.k.a. squiggle) which gives it greater sensitivity and fewer unclassified reads.
+
+Reasons to use Deepbinner:
+* You want to minimise the number of unclassified reads.
+* You plan on running signal-level downstream analyses (like [Nanopolish](https://github.com/jts/nanopolish)). Deepbinner can [demultiplex the fast5 files](#using-deepbinner-before-basecalling) which makes this easier.
+
+Reasons to not use Deepbinner:
+* You only have basecalled reads not the raw fast5 files (which Deepbinner requires).
+* You have a small/slow computer. Deepbinner is more computationally intensive than [Porechop](https://github.com/rrwick/Porechop).
+* You used a sequencing/barcoding kit other than [the ones Deepbinner was trained on](#available-trained-models).
 
 
 
@@ -29,9 +38,9 @@ Deepbinner runs on MacOS and Linux.
 
 <img align="right" src="images/tensorflow.png" alt="TensorFlow logo" width="105">
 
-Its most important requirement is [TensorFlow](https://www.tensorflow.org/), which powers its neural network. The easiest way to install it is probably with pip: `pip3 install tensorflow`. However, [building Tensorflow from source](https://www.tensorflow.org/install/install_sources) may [give better performance](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu). TensorFlow can also [be built to run on NVIDIA GPUs](https://www.tensorflow.org/install/install_linux#NVIDIARequirements) which can give much better performance, but can be a challenge to install. If you're only going to use Deepbinner to classify reads, then this shouldn't be necessary (see more in [Performance](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is very much recommended.
+Its most important requirement is [TensorFlow](https://www.tensorflow.org/), which powers the neural network. The easiest way to install TensorFlow is with pip: `pip3 install tensorflow`. However, [building Tensorflow from source](https://www.tensorflow.org/install/install_sources) may [give better performance](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu). TensorFlow can also [be built to run on NVIDIA GPUs](https://www.tensorflow.org/install/install_linux#NVIDIARequirements) which can give much better performance, but installation is more complex. If you're only going to use Deepbinner to classify reads, you may not need GPU-level performance ([read more here](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is very much recommended.
 
-Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/), [h5py](https://www.h5py.org/), [Matplotlib](https://matplotlib.org/) and [noise](https://github.com/caseman/noise)) but these should be taken care of by the Deepbinner installation process. Deepbinner also assumes that you have the `gzip` command available on your command line.
+Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/), [h5py](https://www.h5py.org/), [Matplotlib](https://matplotlib.org/) and [noise](https://github.com/caseman/noise)) but these should be taken care of by pip when installing Deepbinner. It also assumes that you have the `gzip` command available on your command line.
 
 
 ## Installation
@@ -64,10 +73,11 @@ git clone https://github.com/rrwick/Deepbinner.git
 Deepbinner/deepbinner-runner.py -h
 ```
 
+If you run Deepbinner this way, it's up to you to make sure that all [necessary Python packages](#requirements) are installed.
 
 ## Quick usage
 
-__Demultiplex already-basecalled reads:__
+__Demultiplex reads that are already basecalled:__
 ```
 deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends fast5_dir > classifications
 deepbinner bin --classes classifications --reads basecalled_reads.fastq.gz --out_dir demultiplexed_reads
