@@ -170,9 +170,6 @@ def realtime_subparser(subparsers):
     classify_and_realtime_options(group)
 
     other_args = group.add_argument_group('Other')
-    other_args.add_argument('--copy', action='store_true',
-                            help='Create a copy of the fast5 file in out_dir, leaving the '
-                                 'originals in place (default: move fast5 files to out_dir)')
     other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                             help='Show this help message and exit')
 
