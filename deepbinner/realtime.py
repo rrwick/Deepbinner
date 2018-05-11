@@ -80,10 +80,13 @@ def classify_and_move(fast5s, args, start_model, start_input_size, end_model, en
                 os.makedirs(str(out_dir))
             except (FileNotFoundError, OSError, PermissionError):
                 sys.exit('Error: unable to create output directory {}'.format(out_dir))
-        try:
-            shutil.move(fast5_file, out_dir)
-        except (FileNotFoundError, OSError, PermissionError):
-            print('Error: could not move {} to {}'.format(fast5_file, out_dir))
+            try:
+                if args.copy:
+                    shutil.copy(fast5_file, out_dir)
+                else:
+                    shutil.move(fast5_file, out_dir)
+            except (FileNotFoundError, OSError, PermissionError):
+                print('Error: could not move {} to {}'.format(fast5_file, out_dir))
         counts[barcode_call] += 1
     print()
 

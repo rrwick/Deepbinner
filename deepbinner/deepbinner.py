@@ -93,10 +93,17 @@ def classify_subparser(subparsers):
                                  help='One of the following: a single fast5 file, a directory of '
                                       'fast5 files (will be searched recursively) or a '
                                       'tab-delimited file of training data')
-    classify_and_realtime_options(group, include_verbose=True)
+    classify_and_realtime_options(group)
+
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('--verbose', action='store_true',
+                            help='Include the output probabilities for all barcodes in the '
+                                 'results (default: just show the final barcode call)')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
 
 
-def classify_and_realtime_options(group, include_verbose):
+def classify_and_realtime_options(group):
     """
     A few options are used in both the classify and realtime command, so they are described in this
     separate function.
@@ -131,14 +138,6 @@ def classify_and_realtime_options(group, include_verbose):
     perf_args.add_argument('--omp_num_threads', type=int, required=False, default=12,
                            help='OMP_NUM_THREADS environment variable value')
 
-    other_args = group.add_argument_group('Other')
-    if include_verbose:
-        other_args.add_argument('--verbose', action='store_true',
-                                help='Include the output probabilities for all barcodes in the '
-                                     'results (default: just show the final barcode call)')
-    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
-                            help='Show this help message and exit')
-
 
 def bin_subparser(subparsers):
     group = subparsers.add_parser('bin', description='Bin fasta/q reads',
@@ -168,7 +167,14 @@ def realtime_subparser(subparsers):
     required_args.add_argument('--out_dir', type=str, required=True,
                                help='Directory to output binned fast5 files')
 
-    classify_and_realtime_options(group, include_verbose=False)
+    classify_and_realtime_options(group)
+
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('--copy', action='store_true',
+                            help='Create a copy of the fast5 file in out_dir, leaving the '
+                                 'originals in place (default: move fast5 files to out_dir)')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
 
 
 def porechop_subparser(subparsers):
