@@ -1,4 +1,4 @@
-<p align="left"><img src="images/logo.png" alt="Deepbinner" width="75%"></p>
+<p align="center"><img src="images/logo-stripes-dna.png" alt="Deepbinner" width="100%"></p>
 
 Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanoporetech.com/) sequencing reads. It does this with a deep [convolutional neural network](https://adeshpande3.github.io/adeshpande3.github.io/A-Beginner's-Guide-To-Understanding-Convolutional-Neural-Networks/) classifier, using many of the [architectural advances](https://towardsdatascience.com/neural-network-architectures-156e5bad51ba) that have proven successful in the field of image classification. Unlike other demultiplexers (e.g. Albacore and [Porechop](https://github.com/rrwick/Porechop)), Deepbinner identifies barcodes from the raw signal (a.k.a. squiggle). This gives it greater sensitivity resulting in fewer unclassified reads. It also allows you to demultiplex raw fast5 files, which is useful if you need to run signal-level analyses (like [Nanopolish](https://github.com/jts/nanopolish)) on your samples.
 
