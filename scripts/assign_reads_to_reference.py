@@ -69,9 +69,12 @@ def get_arguments():
                               help='This fraction or more of the aligned bases are to a '
                                    'secondary reference')
 
-    help_args = parser.add_argument_group('Help')
-    help_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
-                           help='Show this help message and exit')
+    other_args = parser.add_argument_group('Other')
+    other_args.add_argument('--read_prefix', type=str,
+                            help='If used, only reads beginning with this prefix will be '
+                                 'included in the output (useful for running in parallel)')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
 
     args = parser.parse_args()
     return args
@@ -83,6 +86,8 @@ def main():
     alignments, ref_names = load_alignments(args, read_names, read_lengths)
     print_header(ref_names)
     for read_name in read_names:
+        if args.read_prefix and not read_name.startswith(args.read_prefix):
+            continue
         process_read(read_name, alignments, ref_names, read_lengths, args)
 
 
