@@ -3,6 +3,17 @@
 Copyright 2018 Ryan Wick (rrwick@gmail.com)
 https://github.com/rrwick/Deepbinner/
 
+This script is used to bin reads, not based on their barcode but on their alignment to references.
+It was used in the Deepbinner paper to generate the truth set against which demulitplexing tools
+could be assessed.
+
+An example of how to prepare the input files in Bash and run this script:
+    for r in REFERENCE_DIR/*.fasta; do
+        minimap2 -x map-ont -c $r READS.fastq.gz | cut -f1-12 >> alignments.paf
+    done
+    tail -n+2 ALBACORE_DIR/sequencing_summary.txt | cut -f2,13 > read_lengths
+    python3 assign_reads_to_reference.py alignments.paf read_lengths > reference_classifications
+
 This file is part of Deepbinner. Deepbinner is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by the Free Software Foundation,
 either version 3 of the License, or (at your option) any later version. Deepbinner is distributed
@@ -30,7 +41,8 @@ def get_arguments():
                                'tail -n+2 sequencing_summary.txt | cut -f2,13)')
 
     class_args = parser.add_argument_group('Read classification thresholds',
-                                           'control how reads\' bases are assigned to references')
+                                           'control how the reads\' bases are assigned to '
+                                           'references')
     class_args.add_argument('--min_align_len', type=int, required=False, default=50,
                             help='Alignments shorter than this are ignored')
     class_args.add_argument('--min_align_id', type=float, required=False, default=50.0,
@@ -69,11 +81,9 @@ def main():
     args = get_arguments()
     read_names, read_lengths = load_read_names_and_lengths(args.read_lengths)
     alignments, ref_names = load_alignments(args, read_names, read_lengths)
-    ref_name_to_index = {b: a for a, b in enumerate(ref_names)}
     print_header(ref_names)
-
     for read_name in read_names:
-        process_read(read_name, alignments, ref_names, read_lengths, ref_name_to_index, args)
+        process_read(read_name, alignments, ref_names, read_lengths, args)
 
 
 def load_read_names_and_lengths(read_lengths_filename):
@@ -111,14 +121,14 @@ def load_alignments(args, read_names, read_lengths):
     return alignments, ref_names
 
 
-def process_read(read_name, alignments, ref_names, read_lengths, ref_name_to_index, args):
+def process_read(read_name, alignments, ref_names, read_lengths, args):
     read_length = read_lengths[read_name]
     identity_per_base_per_ref = get_identities_per_ref(read_name, ref_names, read_length,
                                                        alignments)
     painted_read, read_identity = paint_read(identity_per_base_per_ref, read_length, ref_names,
-                                             ref_name_to_index, args)
+                                             args)
     matches, matched_bases, unmatched_bases, matched_percent = \
-        quantify_matches(painted_read, read_length, ref_names, ref_name_to_index)
+        quantify_matches(painted_read, read_length, ref_names)
 
     best_match, second_best_match = sorted(matches.values(), reverse=True)[0:2]
 
@@ -147,7 +157,7 @@ def get_identities_per_ref(read_name, ref_names, read_length, alignments):
     return identity_per_base_per_ref
 
 
-def paint_read(identity_per_base_per_ref, read_length, ref_names, ref_name_to_index, args):
+def paint_read(identity_per_base_per_ref, read_length, ref_names, args):
     painted_read = [None] * read_length
     used_identities = []
     for i in range(read_length):
@@ -155,7 +165,7 @@ def paint_read(identity_per_base_per_ref, read_length, ref_names, ref_name_to_in
         best, second_best = sorted(identities.values(), reverse=True)[0:2]
         if best > 0.0 and best - second_best >= args.min_base_diff:
             ref_name = {v: k for k, v in identities.items()}[best]
-            painted_read[i] = ref_name_to_index[ref_name]
+            painted_read[i] = ref_name
             used_identities.append(best)
     if used_identities:
         read_identity = statistics.mean(used_identities)
@@ -164,34 +174,22 @@ def paint_read(identity_per_base_per_ref, read_length, ref_names, ref_name_to_in
     return painted_read, read_identity
 
 
-def quantify_matches(painted_read, read_length, ref_names, ref_name_to_index):
+def quantify_matches(painted_read, read_length, ref_names):
     # noinspection PyArgumentList
     counts = collections.Counter(painted_read)
+    ref_counts = {r: counts[r] for r in ref_names}
     if None in counts:
+        ref_counts['none'] = counts[None] / read_length
         unmatched_bases = counts[None]
-        matched_bases = read_length - counts[None]
     else:
+        ref_counts['none'] = 0
         unmatched_bases = 0
-        matched_bases = read_length
+    matched_bases = read_length - unmatched_bases
     if read_length > 0:
         matched_percent = 100.0 * matched_bases / read_length
     else:
         matched_percent = 0.0
-
-    matches = {}
-    for ref in ref_names:
-        ref_index = ref_name_to_index[ref]
-        if ref_index in counts:
-            matches[ref] = counts[ref_index]
-        else:
-            matches[ref] = 0.0
-
-    if None in counts:
-        matches['none'] = counts[None] / read_length
-    else:
-        matches['none'] = 0.0
-
-    return matches, matched_bases, unmatched_bases, matched_percent
+    return ref_counts, matched_bases, unmatched_bases, matched_percent
 
 
 def print_header(ref_names):
