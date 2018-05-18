@@ -27,6 +27,7 @@ Reasons to not use Deepbinner:
   * [Performance](#performance)
   * [Training](#training)
   * [Contributing](#contributing)
+  * [Acknowledgments](#acknowledgments)
   * [License](#license)
 
 
@@ -276,6 +277,12 @@ However, I have a particular need for one kind of contribution: reads! My lab ha
 
 A caveat: the reads should be from whole genome sequencing runs of bacterial genomes or larger. I'm concerned that if the reads came from amplicons or small (e.g. viral) genomes, then the neural network might learn to recognise the sequenced material in addition to the barcode - not what we want! Random whole genome sequencing ensures that the sequenced material is mostly different in each read, so the network must learn to recognise the barcodes.
 
+
+
+
+## Acknowledgments
+
+I would like to thank [James Ferguson](@Psy-Fer) from [the Garvan Institute](https://www.garvan.org.au/). We met at the Nanopore Day Melbourne event in February 2018 where I saw him present on raw signal detection of barcodes. It was then that the seeds of Deepbinner were sown!
 
 
 
