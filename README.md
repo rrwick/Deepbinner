@@ -2,14 +2,14 @@
 
 Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanoporetech.com/) sequencing reads. It does this with a deep [convolutional neural network](https://adeshpande3.github.io/adeshpande3.github.io/A-Beginner's-Guide-To-Understanding-Convolutional-Neural-Networks/) classifier, using many of the [architectural advances](https://towardsdatascience.com/neural-network-architectures-156e5bad51ba) that have proven successful in image classification. Unlike other demultiplexers (e.g. Albacore and [Porechop](https://github.com/rrwick/Porechop)), Deepbinner identifies barcodes from the raw signal (a.k.a. squiggle) which gives it greater sensitivity and fewer unclassified reads.
 
-Reasons to use Deepbinner:
-* You want to minimise the number of unclassified reads.
-* You plan on running signal-level downstream analyses (like [Nanopolish](https://github.com/jts/nanopolish)). Deepbinner can [demultiplex the fast5 files](#using-deepbinner-before-basecalling) which makes this easier.
-
-Reasons to not use Deepbinner:
-* You only have basecalled reads not the raw fast5 files (which Deepbinner requires).
-* You have a small/slow computer. Deepbinner is more computationally intensive than [Porechop](https://github.com/rrwick/Porechop).
-* You used a sequencing/barcoding kit other than [the ones Deepbinner was trained on](#available-trained-models).
+* __Reasons to use Deepbinner__:
+    * To minimise the number of unclassified reads (use Deepbinner by itself).
+    * To minimise the number of misclassified reads (use Deepbinner in conjunction with Albacore demultiplexing).
+    * You plan on running signal-level downstream analyses, like [Nanopolish](https://github.com/jts/nanopolish). Deepbinner can [demultiplex the fast5 files](#using-deepbinner-before-basecalling) which makes this easier.
+* __Reasons to _not_ use Deepbinner__:
+   * You only have basecalled reads not the raw fast5 files (which Deepbinner requires).
+   * You have a small/slow computer. Deepbinner is more computationally intensive than [Porechop](https://github.com/rrwick/Porechop).
+   * You used a sequencing/barcoding kit other than [the ones Deepbinner was trained on](#available-trained-models).
 
 
 
@@ -24,6 +24,7 @@ Reasons to not use Deepbinner:
      * [Step 1: classifying fast5 reads](#step-1-classifying-fast5-reads)
      * [Step 2: binning basecalled reads](#step-2-binning-basecalled-reads)
   * [Using Deepbinner before basecalling](#using-deepbinner-before-basecalling)
+  * [Using Deepbinner with Albacore demultiplexing](#using-deepbinner-with-albacore-demultiplexing)
   * [Performance](#performance)
   * [Training](#training)
   * [Contributing](#contributing)
@@ -88,6 +89,8 @@ __Demultiplex raw fast5 reads (potentially in real-time during a sequencing run)
 ```
 deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
 ```
+
+The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains a small test set: six fast5 files and a fastq of their basecalled sequences. When classified with Deepbinner, you should be two reads each from barcodes 1, 2 and 3.
 
 
 
@@ -199,9 +202,9 @@ If you haven't yet basecalled your reads, you can use `deepbinner realtime` to b
 deepbinner realtime --in_dir fast5s --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
 ```
 
-This command will move (not copy) fast5 files from the `--in_dir` directory to the `--out_dir` directory. As the command name suggests, this can be run in real-time - Deepbinner will watch the input directory and wait for new reads. Just set `--in_dir` to where MinKNOW deposits its reads. Or if you sequence on a laptop and copy the reads to a server, you can run Deepbinner on the server, watching the directory where the reads are deposited. Use Ctrl-C to stop it. 
+This command will move (not copy) fast5 files from the `--in_dir` directory to the `--out_dir` directory. As the command name suggests, this can be run in real-time – Deepbinner will watch the input directory and wait for new reads. Just set `--in_dir` to where MinKNOW deposits its reads. Or if you sequence on a laptop and copy the reads to a server, you can run Deepbinner on the server, watching the directory where the reads are deposited. Use Ctrl-C to stop it. 
 
-This command doesn't have to be run in real-time - it works just as well on a directory of fast5 files from a finished sequencing run.
+This command doesn't have to be run in real-time – it works just as well on a directory of fast5 files from a finished sequencing run.
 
 Here is the full usage for `deepbinner realtime` (many of the same options as the `classify` command):
 ```
@@ -249,9 +252,40 @@ Other:
 
 
 
+## Using Deepbinner with Albacore demultiplexing
+
+If you use both Deepbinner and Albacore to demultiplex reads, only keeping reads for which both tools agree on the barcode, you can achieve very low rates of misclassified reads (high precision, positive predictive value) but a larger proportion of reads will not be classified (put into the 'none' bin). This is what I usually do with my sequencing runs!
+
+The easiest way to achieve this is to follow the [Using Deepbinner before basecalling](#using-deepbinner-before-basecalling) instructions above. Then run Albacore separately on each of Deepbinner's output directories, with its `--barcoding` option on. You should find that for each bin, Albacore puts most of the reads in the same bin (the reads we want to keep), some in the unclassified bin (slightly suspect reads, likely with lower quality basecalls) and a small number in a different bin (very suspect reads).
+
+Here's some Bash code to carry this out automatically:
+```bash
+# Run Deepbinner classification (possibly in real time during sequencing)
+deepbinner realtime --in_dir fast5s --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
+
+mkdir demultiplexed_fastqs
+
+# Loop through each of Deepbinner's bin directories of fast5s.
+for b in $(ls demultiplexed_fast5s | sed 's/none//' | sort -n); do  # skip the 'none' bin
+
+    # Basecall with Albacore (change settings as appropriate to suit your needs).
+    albacore_in=demultiplexed_fast5s/"$b"
+    albacore_out=albacore_"$b"
+    read_fast5_basecaller.py -f FLO-MIN106 -k SQK-LSK108 -i $albacore_in -t 20 --barcoding -s $albacore_out -o fastq --disable_filtering
+
+    # Gzip the reads which Albacore put in the matching bin.
+    barcode_num=$(printf "%02d" $b)  # pad barcode numbers to two digits
+    cat "$albacore_out"/workspace/barcode"$barcode_num"/*.fastq | gzip > demultiplexed_fastqs/barcode"$barcode_num".fastq.gz
+
+    # Clean up Albacore's output directory to save space.
+    rm -r $albacore_out
+done
+```
+
+
 ## Performance
 
-Deepbinner lives up to its name by using a very _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 20 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
+Deepbinner lives up to its name by using a very _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a typical MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 15 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
 
 Running Deepbinner on a GPU can give much better performance. My tests on a Telsa K80 could classify over 100 reads/sec. Modern GPUs could probably do even better.
 
@@ -262,9 +296,9 @@ Running Deepbinner on a GPU can give much better performance. My tests on a Tels
 
 You can train your own neural network with Deepbinner, but you'll need two things:
 * Lots of training data using the same barcoding and sequencing kits. More is better, so ideally from more than one sequencing run.
-* A fast computer to train on, ideally with [TensorFlow running on a GPU](https://www.tensorflow.org/install/install_linux#NVIDIARequirements).
+* A fast computer to train on, ideally with [TensorFlow running on a big GPU](https://www.tensorflow.org/install/install_linux#NVIDIARequirements).
 
-If you can meet those two requirements, then read on in the [Deepbinner training instructions](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md)!
+If you can meet those requirements, then read on in the [Deepbinner training instructions](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md)!
 
 
 
@@ -273,9 +307,9 @@ If you can meet those two requirements, then read on in the [Deepbinner training
 
 As always, the wider community is welcome to contribute to Deepbinner by submitting [issues](https://github.com/rrwick/Deepbinner/issues) or [pull requests](https://github.com/rrwick/Deepbinner/pulls).
 
-However, I have a particular need for one kind of contribution: reads! My lab has mainly used R9.4/R9.5 flowcells with the native barcoding kit. Reads from the rapid barcoding kit (both the older SQK-RBK001 and newer SQK-RBK004) would be very helpful. If you have any, please let me know via email or an [issue](https://github.com/rrwick/Deepbinner/issues). If I could get enough, I'll train a new model and include it in Deepbinner's repo. Since the rapid kit only puts barcodes on the start of the read, I will only need to train a single model, not two (read start and read ends) like I did for native barcoding reads.
+However, I have a particular need for one kind of contribution: reads! [The lab where I work](https://holtlab.net/) has mainly used R9.4/R9.5 flowcells with the native barcoding kit. Reads from the rapid barcoding kit (both the older SQK-RBK001 and newer SQK-RBK004) would be very helpful. If you have any, please let me know via email or an [issue](https://github.com/rrwick/Deepbinner/issues). If I could get enough, I'll train a new model and include it in Deepbinner's repo. Since the rapid kit only puts barcodes on the start of the read, I will only need to train a single model, not two (read start and read ends) like I did for native barcoding reads.
 
-A caveat: the reads should be from whole genome sequencing runs of bacterial genomes or larger. I'm concerned that if the reads came from amplicons or small (e.g. viral) genomes, then the neural network might learn to recognise the sequenced material in addition to the barcode - not what we want! Random whole genome sequencing ensures that the sequenced material is mostly different in each read, so the network must learn to recognise the barcodes.
+A caveat: the reads should be from whole genome sequencing runs of bacterial genomes or larger. I'm concerned that if the reads came from amplicons or small (e.g. viral) genomes, then the neural network might learn to recognise the sequenced material in addition to the barcode – not what we want! Random whole genome sequencing ensures that the sequenced material is mostly different in each read, so the network must learn to recognise the _barcodes_.
 
 
 
