@@ -18,7 +18,7 @@ rm -r porechop_dir
 
 By running Porechop with its highest verbosity (`--verbosity 3`), we produce an output with all of the information we need. CNN demultiplexer will read the Porechop output file, so we can delete the binned reads after it finishes.
 
-The `--require_two_barcodes` option ensures that reads are only given a barcode bin if they have a good match on their start and end. This serves two purposes. First, it makes binning stringent, reducing the risk of misclassified reads. Second, allows us to use each read for training both the read start and read end CNNs, simplifying the process.
+The `--require_two_barcodes` option ensures that reads are only given a barcode bin if they have a good match on their start and end. This serves two purposes. First, it makes binning stringent, reducing the risk of misclassified reads. Second, allows us to use each read for training both the read start and read end CNNs, simplifying the process. __Do not use this option if you are preparing rapid barcoding data, as there are no end-barcodes for rapid reads.__
 
 The `--no_split` option turns off Porechop's middle-adapter search and we use it here simply to save time. A chimeric read with a middle adapter is not a problem for our training set.
 
@@ -54,6 +54,8 @@ This command also attempts to trim off open-pore signal at the start of the sign
 
 
 ## Training the neural network
+
+The following instructions assume you're training a model that has barcodes on both the start and end of reads. If you have a start-barcode-only dataset (like rapid barcoding reads), just ignore the end-read commands.
 
 Now it's time to actually train the CNN!
 
