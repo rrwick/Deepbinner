@@ -1,6 +1,6 @@
 # Training the Deepbinner CNN
 
-These instructions cover all the steps necessary to train CNN models for use in the `cnn_demultiplexer classify` command.
+These instructions cover all the steps necessary to train CNN models for use in the `deepbinner classify` command.
 
 
 ## Prerequisites
@@ -28,7 +28,7 @@ The `--no_split` option turns off Porechop's middle-adapter search and we use it
 
 Use the `porechop` subcommand to process the Porechop output into a file of raw training data:
 ```
-cnn_demultiplexer porechop porechop.out /path/to/fast5_dir > raw_training_data
+deepbinner porechop porechop.out /path/to/fast5_dir > raw_training_data
 ```
 
 This will produce a tab-delimited file with the following columns:
@@ -44,7 +44,7 @@ This will produce a tab-delimited file with the following columns:
 
 This command finalises the training data:
 ```
-cnn_demultiplexer balance raw_training_data training
+deepbinner balance raw_training_data training
 ```
 
 It produces two separate files, one for read starts and one for read ends. Each file only has two columns: the barcode label and the signal. It balances the data by ensuring that each barcode has the same number of samples (necessarily limited to the number of samples for the least abundant barcode). No-barcode samples are included as well, using signal from the middle of reads and randomly generated signals.
@@ -60,8 +60,8 @@ The following instructions assume you're training a model that has barcodes on b
 Now it's time to actually train the CNN!
 
 ```
-cnn_demultiplexer train training_read_starts read_start_model
-cnn_demultiplexer train training_read_ends read_end_model
+deepbinner train training_read_starts read_start_model
+deepbinner train training_read_ends read_end_model
 ```
 
 This part can be quite time consuming, and so a big GPU is definitely recommended! Even with a big GPU, it may take many hours to finish.
@@ -84,21 +84,21 @@ The training data we prepared earlier may have some duds in it. This may be due 
 
 To remedy this, we use our trained CNN to classify our training data:
 ```
-cnn_demultiplexer classify training_read_starts read_start_model > read_starts_classification
-cnn_demultiplexer classify training_read_ends read_end_model > read_ends_classification
+deepbinner classify training_read_starts read_start_model > read_starts_classification
+deepbinner classify training_read_ends read_end_model > read_ends_classification
 ```
 
 As you would expect, this process should classify most samples to the same barcode bin as their training label. The small fraction that do not match should be excluded from the training set. These commands will produce new training sets with those samples filtered out:
 ```
-cnn_demultiplexer refine training_read_starts read_starts_classification > training_read_starts_refined
-cnn_demultiplexer refine training_read_ends read_ends_classification > training_read_ends_refined
+deepbinner refine training_read_starts read_starts_classification > training_read_starts_refined
+deepbinner refine training_read_ends read_ends_classification > training_read_ends_refined
 ```
 
 Now that a new, better training set is available, we can retrain our CNN and hopefully produce even better models than before:
 ```
 rm read_start_model read_end_model
-cnn_demultiplexer train training_read_starts_refined read_start_model
-cnn_demultiplexer train training_read_ends_refined read_end_model
+deepbinner train training_read_starts_refined read_start_model
+deepbinner train training_read_ends_refined read_end_model
 ```
 
 
@@ -117,9 +117,9 @@ wc -l "$training_data"
 
 for i in {1..10}; do
     rm -f "$model"
-    ./cnn_demultiplexer-runner.py train --epochs 25 "$training_data" "$model"
-    ./cnn_demultiplexer-runner.py classify -s "$model" "$training_data" > "$classifications"
-    ./cnn_demultiplexer-runner.py refine "$training_data" "$classifications" > $training_data"_refined"
+    ./deepbinner-runner.py train --epochs 25 "$training_data" "$model"
+    ./deepbinner-runner.py classify -s "$model" "$training_data" > "$classifications"
+    ./deepbinner-runner.py refine "$training_data" "$classifications" > $training_data"_refined"
     rm "$training_data"
     mv $training_data"_refined" "$training_data"
     printf "Iteration "$i" training data count: "
