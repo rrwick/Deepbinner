@@ -8,11 +8,19 @@ These instructions cover all the steps necessary to train CNN models for use in 
 Lots of barcoded reads! More training data is always better.
 
 
+## Basecall with Albacore
+
+```
+read_fast5_basecaller.py -f FLO-MIN106 -k SQK-LSK108 -i /path/to/fast5_dir -t 16 -s basecalling -o fastq --disable_filtering --barcoding --recursive
+```
+
+
+
 ## Run Porechop
 
 To prepare training data, we first need to know which reads have which barcodes. To do this, we run Porechop:
 ```
-porechop -i "$fastq_dir" -b porechop_dir --require_two_barcodes --verbosity 3 --no_split > porechop.out
+porechop -i basecalling/workspace -b porechop_dir --require_two_barcodes --verbosity 3 --no_split > porechop.out
 rm -r porechop_dir
 ```
 
@@ -74,7 +82,7 @@ Options to change some parameters:
 * `--batch_size`: Larger values may work better but will use more memory.
 * `--test_fraction`: What fraction of the data will be set aside for use as a validation set. If you have no interest in assessing the model, set this to 0.0 to use all of your data for training.
 
-If you would like to [design your own CNN architecture](https://keras.io/getting-started/functional-api-guide/), you'll need to code it up yourself by modifying the `ksudhfsodiufh` function in `network_architecture.py`.
+If you would like to [design your own CNN architecture](https://keras.io/getting-started/functional-api-guide/), you'll need to code it up yourself by modifying the `build_network` function in `network_architecture.py`.
 
 
 
