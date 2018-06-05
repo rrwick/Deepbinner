@@ -17,7 +17,6 @@ warnings.simplefilter('ignore', DeprecationWarning)
 warnings.simplefilter('ignore', FutureWarning)
 
 import os
-import collections
 import sys
 import pathlib
 import h5py
@@ -27,6 +26,7 @@ from keras import backend
 import tensorflow as tf
 from .load_fast5s import find_all_fast5s, get_read_id_and_signal
 from .trim_signal import normalise
+from .misc import print_summary_table
 
 
 def classify(args):
@@ -365,26 +365,6 @@ def print_classification_progress(completed, total, label, out_dest=sys.stderr):
     percent = 100.0 * completed / total
     print('\rClassifying {}: {} / {} ({:.1f}%)'.format(label, completed, total, percent),
           file=out_dest, end='', flush=True)
-
-
-def print_summary_table(classifications):
-    counts = collections.defaultdict(int)
-    for barcode in classifications.values():
-        counts[barcode] += 1
-    print('', file=sys.stderr)
-    print('Barcode     Count', file=sys.stderr)
-
-    number_barcodes, string_barcodes = [], []
-    for barcode in counts.keys():
-        try:
-            number_barcodes.append(int(barcode))
-        except ValueError:
-            string_barcodes.append(barcode)
-    sorted_barcodes = sorted(number_barcodes) + sorted(string_barcodes)
-
-    for barcode in sorted_barcodes:
-        print('{:>7} {:>9}'.format(barcode, counts[str(barcode)]), file=sys.stderr)
-    print('', file=sys.stderr)
 
 
 def set_tensorflow_threads(args):

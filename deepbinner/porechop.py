@@ -15,15 +15,21 @@ import re
 import sys
 from .load_fast5s import get_read_id_and_signal, find_all_fast5s
 from .trim_signal import too_much_open_pore
+from .misc import print_summary_table
 
 
 def training_data_from_porechop(args):
     barcode_calls = get_porechop_barcode_calls(args.porechop_out)
+    if not barcode_calls:
+        sys.exit('Error: could not parse barcode calls from {} - did you run Porechop '
+                 'correctly?'.format(args.porechop_out))
 
     print('\t'.join(['Read_ID', 'Barcode_bin',
                      'Start_read_signal', 'Middle_read_signal', 'End_read_signal']))
 
     fast5_files = find_all_fast5s(args.fast5_dir)
+    if not fast5_files:
+        sys.exit('Error: could not find any fast5 files in {}'.format(args.fast5_dir))
 
     print('', file=sys.stderr)
     print('Loading signal from {} fast5 files'.format(len(fast5_files)), end='', file=sys.stderr)
@@ -109,7 +115,8 @@ def get_porechop_barcode_calls(porechop_output_filename):
                 barcode_bin = get_final_barcode_call(read_info)
                 if barcode_bin is not None:
                     barcode_calls[read_id] = barcode_bin
-    print(' done', file=sys.stderr)
+    print('done', file=sys.stderr)
+    print_summary_table(barcode_calls)
     return barcode_calls
 
 
