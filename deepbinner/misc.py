@@ -15,12 +15,12 @@ import collections
 import sys
 
 
-def print_summary_table(classifications):
+def print_summary_table(classifications, output=sys.stderr):
     counts = collections.defaultdict(int)
     for barcode in classifications.values():
         counts[barcode] += 1
-    print('', file=sys.stderr)
-    print('Barcode     Count', file=sys.stderr)
+    print('', file=output)
+    print('Barcode     Count', file=output)
 
     number_barcodes, string_barcodes = [], []
     for barcode in counts.keys():
@@ -31,5 +31,5 @@ def print_summary_table(classifications):
     sorted_barcodes = sorted(number_barcodes) + sorted(string_barcodes)
 
     for barcode in sorted_barcodes:
-        print('{:>7} {:>9}'.format(barcode, counts[str(barcode)]), file=sys.stderr)
-    print('', file=sys.stderr)
+        print('{:>7} {:>9}'.format(barcode, counts[str(barcode)]), file=output)
+    print('', file=output)

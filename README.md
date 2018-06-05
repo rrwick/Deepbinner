@@ -287,7 +287,7 @@ done
 
 Deepbinner lives up to its name by using a very _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a typical MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 15 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
 
-Running Deepbinner on a GPU can give much better performance. My tests on a Telsa K80 could classify over 100 reads/sec. Modern GPUs could probably do even better.
+Running Deepbinner on a GPU can give much better performance. My tests on a Tesla K80 could classify over 100 reads/sec. Modern GPUs could probably do even better.
 
 
 
