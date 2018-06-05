@@ -47,7 +47,7 @@ def realtime(args):
                 if waiting:
                     print('.', end='', flush=True)
                 else:
-                    print('\nWaiting for new fast5 files (press Ctrl-C to stop)', end='',
+                    print('\nWaiting for new fast5 files (Ctrl-C to stop)', end='',
                           flush=True)
                     waiting = True
             time.sleep(5)
@@ -66,12 +66,21 @@ def look_for_new_fast5s(in_dir, out_dir, nested_out_dir):
 def classify_and_move(fast5s, args, start_model, start_input_size, end_model, end_input_size,
                       output_size):
     print()
-    print('Found {:,} new fast5 files'.format(len(fast5s)))
+    print('Found {:,} fast5 files in {}'.format(len(fast5s), args.in_dir))
+
+    # We don't classify all found fast5s, because if there are a ton it will take a long time to
+    # finish, and nothing will be moved while we wait. Instead we grab the first
+    fast5s = fast5s[:args.batch_size * 10]
+
     classifications, read_id_to_fast5_file = \
         classify_fast5_files(fast5s, start_model, start_input_size, end_model, end_input_size,
                              output_size, args, full_output=False)
     print()
+    move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
+    print_summary_table(classifications, output=sys.stdout)
 
+
+def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s):
     move_count, fail_move_already_exists, fail_move_other_reason = 0, 0, 0
     counts = collections.defaultdict(int)
     for read_id, barcode_call in classifications.items():
@@ -90,16 +99,19 @@ def classify_and_move(fast5s, args, start_model, start_input_size, end_model, en
         else:
             try:
                 shutil.move(fast5_file, out_dir)
+                move_count += 1
             except (FileNotFoundError, OSError, PermissionError):
                 fail_move_other_reason += 1
 
         counts[barcode_call] += 1
-        move_count += 1
         print_moving_progress(move_count, len(fast5s))
 
     print()
     print_moving_error_messages(fail_move_already_exists, fail_move_other_reason, args.out_dir)
-    print_summary_table(classifications, output=sys.stdout)
+
+    # If we couldn't move any files, then something is wrong and we should quit.
+    if move_count == 0:
+        sys.exit('Error: no files were successfully moved to {}'.format(args.out_dir))
 
 
 def print_moving_error_messages(already_exists, other_reason, out_dir):
