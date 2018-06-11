@@ -55,9 +55,11 @@ This command finalises the training data:
 deepbinner balance raw_training_data training
 ```
 
-It produces two separate files, one for read starts and one for read ends. Each file only has two columns: the barcode label and the signal. It balances the data by ensuring that each barcode has the same number of samples (necessarily limited to the number of samples for the least abundant barcode). No-barcode samples are included as well, using signal from the middle of reads and randomly generated signals.
+It balances the data by ensuring that each barcode has the same number of samples (necessarily limited to the number of samples for the least abundant barcode). No-barcode samples are included as well, using signal from the middle of reads and randomly generated signals.
 
-This command also attempts to trim off open-pore signal at the start of the signal, so it outputs data from when the real read has begun. However, this process isn't perfect (more on that in the refining step below).
+This command produces two separate files, one for read starts and one for read ends. Each file only has two columns: the barcode label and the signal. If you are training on rapid reads (which only have a start barcode), you can delete the end barcode file.
+
+It also attempts to trim off open-pore signal at the start of the signal, so it outputs data from when the real read has begun. However, this process isn't perfect (more on that in the refining step below).
 
 
 
@@ -92,8 +94,8 @@ The training data we prepared earlier may have some duds in it. This may be due 
 
 To remedy this, we use our trained CNN to classify our training data:
 ```
-deepbinner classify training_read_starts read_start_model > read_starts_classification
-deepbinner classify training_read_ends read_end_model > read_ends_classification
+deepbinner classify -s read_start_model training_read_starts > read_starts_classification
+deepbinner classify -e read_end_model training_read_ends > read_ends_classification
 ```
 
 As you would expect, this process should classify most samples to the same barcode bin as their training label. The small fraction that do not match should be excluded from the training set. These commands will produce new training sets with those samples filtered out:
@@ -125,9 +127,9 @@ wc -l "$training_data"
 
 for i in {1..10}; do
     rm -f "$model"
-    ./deepbinner-runner.py train --epochs 25 "$training_data" "$model"
-    ./deepbinner-runner.py classify -s "$model" "$training_data" > "$classifications"
-    ./deepbinner-runner.py refine "$training_data" "$classifications" > $training_data"_refined"
+    deepbinner train --epochs 25 "$training_data" "$model"
+    deepbinner classify -s "$model" "$training_data" > "$classifications"
+    deepbinner refine "$training_data" "$classifications" > $training_data"_refined"
     rm "$training_data"
     mv $training_data"_refined" "$training_data"
     printf "Iteration "$i" training data count: "
