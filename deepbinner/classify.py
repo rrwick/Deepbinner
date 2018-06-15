@@ -115,7 +115,7 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
 
     print_classification_progress(0, len(fast5_files), 'fast5s', out_dest=out_dest)
     if full_output:
-        print_output_header(args.verbose, using_read_starts, using_read_ends)
+        print_output_header(args.verbose, using_read_starts, using_read_ends, output_size)
 
     classifications, read_id_to_fast5_file = {}, {}
     for fast5_batch in chunker(fast5_files, args.batch_size):
@@ -176,7 +176,7 @@ def classify_training_data(input_file, start_model, start_input_size, end_model,
     num_lines = sum(1 for _ in open(input_file))
     print_classification_progress(0, num_lines, 'training data')
 
-    print_output_header(args.verbose, using_read_starts, using_read_ends)
+    print_output_header(args.verbose, using_read_starts, using_read_ends, output_size)
 
     assert not(using_read_starts and using_read_ends)
     if using_read_starts:
@@ -255,20 +255,19 @@ def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
 
 
-def print_output_header(verbose, using_read_starts, using_read_ends):
+def print_output_header(verbose, using_read_starts, using_read_ends, output_size):
     if not verbose:
-        print('\t'.join(['read_ID', 'barcode_call']))
-
+        header = ['read_ID', 'barcode_call']
     elif using_read_starts and using_read_ends:
-        print('\t'.join(['read_ID', 'barcode_call',
-                         'start_none', 'start_1', 'start_2', 'start_3', 'start_4', 'start_5',
-                         'start_6', 'start_7', 'start_8', 'start_9', 'start_10', 'start_11',
-                         'start_12', 'start_barcode_call',
-                         'end_none', 'end_1', 'end_2', 'end_3', 'end_4', 'end_5', 'end_6', 'end_7',
-                         'end_8', 'end_9', 'end_10', 'end_11', 'end_12', 'end_barcode_call']))
+        header = ['read_ID', 'barcode_call', 'start_none']
+        header += ['start_' + str(i) for i in range(1, output_size)]
+        header += ['start_barcode_call', 'end_none']
+        header += ['end_' + str(i) for i in range(1, output_size)]
+        header.append('end_barcode_call')
     else:  # just doing starts or ends
-        print('\t'.join(['read_ID', 'barcode_call',
-                         'none', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']))
+        header = ['read_ID', 'barcode_call', 'none']
+        header += [str(i) for i in range(1, output_size)]
+    print('\t'.join(header))
 
 
 def get_barcode_call_from_probabilities(probabilities, score_diff_threshold):

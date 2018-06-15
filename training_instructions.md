@@ -41,7 +41,7 @@ deepbinner porechop porechop.out /path/to/fast5_dir > raw_training_data
 
 This will produce a tab-delimited file with the following columns:
 * `Read_ID`: e.g. 3d873ba9-d55a-45a4-9ad5-db4f64135f11
-* `Barcode_bin`: a number from 1-12
+* `Barcode_bin`: a number from 1–12
 * `Start_read_signal`: signal from the start of the read. This is variable in length, because some read signals begin with a fair amount of open pore signal which will be trimmed off in the next step.
 * `Middle_read_signal`: signal from the middle of the read (used for training samples without a barcode)
 * `End_read_signal`: signal from the end of the read. Like the start read signal, this is variable in length.
@@ -56,6 +56,8 @@ deepbinner balance raw_training_data training
 ```
 
 It balances the data by ensuring that each barcode has the same number of samples (necessarily limited to the number of samples for the least abundant barcode). No-barcode samples are included as well, using signal from the middle of reads and randomly generated signals.
+
+If you do not want to use all barcodes, you can use the `--barcodes` argument to specify which ones you do want to include. E.g. if you are only interested in barcodes 1–6, use `--barcodes 1,2,3,4,5,6` in the command.
 
 This command produces two separate files, one for read starts and one for read ends. Each file only has two columns: the barcode label and the signal. If you are training on rapid reads (which only have a start barcode), you can delete the end barcode file.
 
@@ -78,11 +80,10 @@ This part can be quite time consuming, and so a big GPU is definitely recommende
 
 Options to change some parameters:
 
-* `--signal_size`
-* `--barcode_count`
+* `--signal_size`: how much of the raw signal the network should process at once. I've only ever used 1024 (the default), so don't change this value without good reason.
 * `--epochs`: Too few and the network won't get good enough. Too many and it's a waste of time.
 * `--batch_size`: Larger values may work better but will use more memory.
-* `--test_fraction`: What fraction of the data will be set aside for use as a validation set. If you have no interest in assessing the model, set this to 0.0 to use all of your data for training.
+* `--test_fraction`: What fraction of the data will be set aside for use as a validation set. If you have no interest in assessing the model, set this to 0 to use all of your data for training.
 
 If you would like to [design your own CNN architecture](https://keras.io/getting-started/functional-api-guide/), you'll need to code it up yourself by modifying the `build_network` function in `network_architecture.py`.
 

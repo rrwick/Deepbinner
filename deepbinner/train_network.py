@@ -14,6 +14,7 @@ If not, see <http://www.gnu.org/licenses/>.
 import random
 import time
 import numpy as np
+import sys
 
 from keras.layers import Input
 from keras.models import Model
@@ -23,8 +24,7 @@ from .trim_signal import normalise
 
 def train(args):
     print()
-    class_count = args.barcode_count + 1
-
+    class_count = determine_class_count(args.training_data)
     inputs = Input(shape=(1024, 1))
     predictions = build_network(inputs, class_count)
 
@@ -93,6 +93,23 @@ def train(args):
 
     model.save(args.model_out)
     print()
+
+
+def determine_class_count(training_data_filename):
+    barcodes = set()
+    with open(training_data_filename, 'rt') as training_data_text:
+        for line in training_data_text:
+            parts = line.strip().split('\t')
+            barcodes.add(parts[0])
+    try:
+        barcodes = [int(x) for x in barcodes]
+    except ValueError:
+        sys.exit('Error: a non-integer barcode class was encountered '
+                 'in {}'.format(training_data_filename))
+    class_count = max(barcodes) + 1
+    print('Number of possible barcode classifications = {}'.format(class_count))
+    print('  (1-{} plus a no barcode class)'.format(class_count-1))
+    return class_count
 
 
 def load_training_set(training_data_filename, signal_size, class_count):

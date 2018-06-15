@@ -18,7 +18,7 @@ from .trim_signal import clean_signal
 
 
 def balance_training_samples(args):
-    bin_counts, bin_lines = load_data_by_bin(args.training_data)
+    bin_counts, bin_lines = load_data_by_bin(args.training_data, args.barcodes)
     smallest_count = min(bin_counts.values())
 
     bins = sorted(bin_counts.keys(), key=lambda x: int(x))
@@ -85,7 +85,7 @@ def balance_training_samples(args):
     print()
 
 
-def load_data_by_bin(raw_training_data_filename):
+def load_data_by_bin(raw_training_data_filename, barcodes):
     print()
     print('Loading raw training data... ', end='', flush=True)
     bin_counts = collections.defaultdict(int)
@@ -95,8 +95,9 @@ def load_data_by_bin(raw_training_data_filename):
             if line.startswith('Read_ID'):
                 continue
             barcode_bin = line.split('\t')[1]
-            bin_counts[barcode_bin] += 1
-            bin_lines[barcode_bin].append(line.strip())
+            if barcodes is None or barcode_bin in barcodes:
+                bin_counts[barcode_bin] += 1
+                bin_lines[barcode_bin].append(line.strip())
     print('done')
 
     print()

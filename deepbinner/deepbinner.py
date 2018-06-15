@@ -72,6 +72,7 @@ def main():
         training_data_from_porechop(args)
 
     elif args.subparser_name == 'balance':
+        check_balance_arguments(args)
         from .balance import balance_training_samples
         balance_training_samples(args)
 
@@ -208,6 +209,9 @@ def balance_subparser(subparsers):
                        help='Prefix for the output files (*_read_starts and *_read_ends)')
 
     # Optional arguments
+    group.add_argument('--barcodes', type=str,
+                       help='A comma-delimited list of which barcodes to include (default: '
+                            'include all barcodes)')
     group.add_argument('--signal_size', type=int, required=False, default=1024,
                        help='Amount of signal (number of samples) that will be used in the neural '
                             'network')
@@ -231,8 +235,6 @@ def train_subparser(subparsers):
     group.add_argument('--signal_size', type=int, required=False, default=1024,
                        help='Amount of signal (number of samples) that will be used in the neural '
                             'network')
-    group.add_argument('--barcode_count', type=int, required=False, default=12,
-                       help='The number of discrete barcodes')
     group.add_argument('--epochs', type=int, required=False, default=100,
                        help='Number of training epochs')
     group.add_argument('--aug', type=int, required=False, default=2,
@@ -263,6 +265,16 @@ def check_classify_and_realtime_arguments(args):
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
+
+
+def check_balance_arguments(args):
+    if args.barcodes is not None:
+        args.barcodes = args.barcodes.split(',')
+        try:
+            _ = [int(x) for x in args.barcodes]
+        except ValueError:
+            sys.exit('Error: if used, --barcodes must be a comma-delimited list of numbers (no '
+                     'spaces)')
 
 
 if __name__ == '__main__':
