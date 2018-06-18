@@ -137,48 +137,46 @@ usage: deepbinner classify [-s START_MODEL] [-e END_MODEL] [--scan_size SCAN_SIZ
                            [--score_diff SCORE_DIFF] [--require_both] [--batch_size BATCH_SIZE]
                            [--intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS]
                            [--inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS]
-                           [--device_count DEVICE_COUNT] [--omp_num_threads OMP_NUM_THREADS]
-                           [--verbose] [-h]
+                           [--device_count DEVICE_COUNT] [--omp_num_threads OMP_NUM_THREADS] [--verbose]
+                           [-h]
                            input
 
 Classify fast5 reads
 
 Positional:
-  input                           One of the following: a single fast5 file, a directory of fast5
-                                  files (will be searched recursively) or a tab-delimited file of
-                                  training data
+  input                            One of the following: a single fast5 file, a directory of fast5 files
+                                   (will be searched recursively) or a tab-delimited file of training
+                                   data
 
 Models (at least one is required):
   -s START_MODEL, --start_model START_MODEL
-                                  Model trained on the starts of reads
+                                   Model trained on the starts of reads
   -e END_MODEL, --end_model END_MODEL
-                                  Model trained on the ends of reads
+                                   Model trained on the ends of reads
 
 Barcoding:
-  --scan_size SCAN_SIZE           This much of a read's start/end signal will examined for barcode
-                                  signals (default: 6144)
-  --score_diff SCORE_DIFF         For a read to be classified, there must be this much difference
-                                  between the best and second-best barcode scores (default: 0.5)
-  --require_both                  When classifying reads using two models (read start and read end)
-                                  require both barcode calls to match to make the final call
-                                  (default: False)
+  --scan_size SCAN_SIZE            This much of a read's start/end signal will examined for barcode
+                                   signals (default: 6144)
+  --score_diff SCORE_DIFF          For a read to be classified, there must be this much difference
+                                   between the best and second-best barcode scores (default: 0.5)
+  --require_both                   When classifying reads using two models (read start and read end)
+                                   require both barcode calls to match to make the final call (default:
+                                   a call on either the read start or read end is sufficient)
 
 Performance:
-  --batch_size BATCH_SIZE         Neural network batch size (default: 256)
+  --batch_size BATCH_SIZE          Neural network batch size (default: 256)
   --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
-                                  TensorFlow's intra_op_parallelism_threads config option (default:
-                                  12)
+                                   TensorFlow's intra_op_parallelism_threads config option (default: 12)
   --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
-                                  TensorFlow's inter_op_parallelism_threads config option (default:
-                                  1)
-  --device_count DEVICE_COUNT     TensorFlow's device_count config option (default: 1)
+                                   TensorFlow's inter_op_parallelism_threads config option (default: 1)
+  --device_count DEVICE_COUNT      TensorFlow's device_count config option (default: 1)
   --omp_num_threads OMP_NUM_THREADS
-                                  OMP_NUM_THREADS environment variable value (default: 12)
+                                   OMP_NUM_THREADS environment variable value (default: 12)
 
 Other:
-  --verbose                       Include the output probabilities for all barcodes in the results
-                                  (default: just show the final barcode call)
-  -h, --help                      Show this help message and exit
+  --verbose                        Include the output probabilities for all barcodes in the results
+                                   (default: just show the final barcode call)
+  -h, --help                       Show this help message and exit
 ```
 
 
@@ -232,38 +230,36 @@ usage: deepbinner realtime --in_dir IN_DIR --out_dir OUT_DIR [-s START_MODEL] [-
 Sort fast5 files during sequencing
 
 Required:
-  --in_dir IN_DIR                 Directory where sequencer deposits fast5 files
-  --out_dir OUT_DIR               Directory to output binned fast5 files
+  --in_dir IN_DIR                  Directory where sequencer deposits fast5 files
+  --out_dir OUT_DIR                Directory to output binned fast5 files
 
 Models (at least one is required):
   -s START_MODEL, --start_model START_MODEL
-                                  Model trained on the starts of reads
+                                   Model trained on the starts of reads
   -e END_MODEL, --end_model END_MODEL
-                                  Model trained on the ends of reads
+                                   Model trained on the ends of reads
 
 Barcoding:
-  --scan_size SCAN_SIZE           This much of a read's start/end signal will examined for barcode
-                                  signals (default: 6144)
-  --score_diff SCORE_DIFF         For a read to be classified, there must be this much difference
-                                  between the best and second-best barcode scores (default: 0.5)
-  --require_both                  When classifying reads using two models (read start and read end)
-                                  require both barcode calls to match to make the final call
-                                  (default: False)
+  --scan_size SCAN_SIZE            This much of a read's start/end signal will examined for barcode
+                                   signals (default: 6144)
+  --score_diff SCORE_DIFF          For a read to be classified, there must be this much difference
+                                   between the best and second-best barcode scores (default: 0.5)
+  --require_both                   When classifying reads using two models (read start and read end)
+                                   require both barcode calls to match to make the final call (default:
+                                   a call on either the read start or read end is sufficient)
 
 Performance:
-  --batch_size BATCH_SIZE         Neural network batch size (default: 256)
+  --batch_size BATCH_SIZE          Neural network batch size (default: 256)
   --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
-                                  TensorFlow's intra_op_parallelism_threads config option (default:
-                                  12)
+                                   TensorFlow's intra_op_parallelism_threads config option (default: 12)
   --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
-                                  TensorFlow's inter_op_parallelism_threads config option (default:
-                                  1)
-  --device_count DEVICE_COUNT     TensorFlow's device_count config option (default: 1)
+                                   TensorFlow's inter_op_parallelism_threads config option (default: 1)
+  --device_count DEVICE_COUNT      TensorFlow's device_count config option (default: 1)
   --omp_num_threads OMP_NUM_THREADS
-                                  OMP_NUM_THREADS environment variable value (default: 12)
+                                   OMP_NUM_THREADS environment variable value (default: 12)
 
 Other:
-  -h, --help                      Show this help message and exit
+  -h, --help                       Show this help message and exit
 ```
 
 

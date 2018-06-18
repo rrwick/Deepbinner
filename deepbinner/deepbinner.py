@@ -125,7 +125,8 @@ def classify_and_realtime_options(group):
     barcode_args.add_argument('--require_both', action='store_true',
                               help='When classifying reads using two models (read start and read '
                                    'end) require both barcode calls to match to make the final '
-                                   'call')
+                                   'call (default: a call on either the read start or read end is '
+                                   'sufficient)')
 
     perf_args = group.add_argument_group('Performance')
     perf_args.add_argument('--batch_size', type=int, required=False, default=256,
