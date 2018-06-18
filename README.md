@@ -9,7 +9,7 @@ Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanop
 * __Reasons to _not_ use Deepbinner__:
    * You only have basecalled reads not the raw fast5 files (which Deepbinner requires).
    * You have a small/slow computer. Deepbinner is more computationally intensive than [Porechop](https://github.com/rrwick/Porechop).
-   * You used a sequencing/barcoding kit other than [the ones Deepbinner was trained on](#available-trained-models).
+   * You used a sequencing/barcoding kit other than [the ones Deepbinner was trained on](models).
 
 
 
@@ -79,27 +79,39 @@ If you run Deepbinner this way, it's up to you to make sure that all [necessary 
 
 ## Quick usage
 
-__Demultiplex reads that are already basecalled:__
+Demultiplex __native__ barcoding reads that are __already basecalled__:
 ```
 deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends fast5_dir > classifications
 deepbinner bin --classes classifications --reads basecalled_reads.fastq.gz --out_dir demultiplexed_reads
 ```
 
-__Demultiplex raw fast5 reads (potentially in real-time during a sequencing run)__:
+Demultiplex __rapid__ barcoding reads that are __already basecalled__:
+```
+deepbinner classify -s SQK-RBK004_read_starts fast5_dir > classifications
+deepbinner bin --classes classifications --reads basecalled_reads.fastq.gz --out_dir demultiplexed_reads
+```
+
+Demultiplex __native__ barcoding __raw fast5__ reads (potentially in real-time during a sequencing run):
 ```
 deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
 ```
 
-The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains a small test set: six fast5 files and a fastq of their basecalled sequences. When classified with Deepbinner, you should be two reads each from barcodes 1, 2 and 3.
+Demultiplex __rapid__ barcoding __raw fast5__ reads (potentially in real-time during a sequencing run):
+```
+deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s -s SQK-RBK004_read_starts
+```
+
+
+The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains a small test set: six fast5 files and a FASTQ of their basecalled sequences. When classified with Deepbinner, you should get two reads each from barcodes 1, 2 and 3.
 
 
 
 
 ## Available trained models
 
-Deepbinner currently only provides pre-trained models for the [EXP-NBD103 native barcoding kit](https://store.nanoporetech.com/native-barcoding-kit-1d.html). These models ([one for the starts of reads](models/EXP-NBD103_read_starts), [one for the ends of reads](models/EXP-NBD103_read_ends)) were trained on native barcoded runs sequenced using the [SQK-LSK108 1D ligation kit](https://store.nanoporetech.com/ligation-sequencing-kit-1d.html) from both R9.4 (a.k.a. FLO-MIN106) and R9.5 (a.k.a. FLO-MIN107) flow cells. If you have similar data, then Deepbinner should work nicely!
+Deepbinner currently only provides pre-trained models for the [EXP-NBD103 native barcoding expansion](https://store.nanoporetech.com/native-barcoding-kit-1d.html) and the [SQK-RBK004 rapid barcoding kit](https://store.nanoporetech.com/rapid-barcoding-kit.html). See more details [here](models).
 
-If you have different data (e.g. sequenced using the [SQK-RBK004 rapid barcoding kit](https://store.nanoporetech.com/rapid-barcoding-kit.html)), then pre-trained models aren't available. If you have lots of existing data, you can [train your own network](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md). Alternatively, if you can share your data with me, I could train a model and make it available as part of Deepbinner. [Let me know!](https://github.com/rrwick/Deepbinner/issues)
+If you have different data, then pre-trained models aren't available. If you have lots of existing data, you can [train your own network](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md). Alternatively, if you can share your data with me, I could train a model and make it available as part of Deepbinner. [Let me know!](https://github.com/rrwick/Deepbinner/issues/new)
 
 
 
@@ -107,7 +119,7 @@ If you have different data (e.g. sequenced using the [SQK-RBK004 rapid barcoding
 
 If your reads are already basecalled, then running Deepbinner is a two-step process:
 1. Classify reads using the fast5 files
-2. Sort out the basecalled fastq reads using the classifications
+2. Organise the basecalled FASTQ reads into bins using the classifications
 
 
 ### Step 1: classifying fast5 reads
@@ -117,54 +129,56 @@ This is accomplished using the `deepbinner classify` command, e.g.:
 deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends fast5_dir > classifications
 ```
 
-Since the native barcoding kit puts barcodes on both the start and end of reads, it makes sense to supply both models to Deepbinner. Most reads should have a barcode at the start, but barcodes at the end are less common. If a read has conflicting barcodes at the start and end, it will be put in the unclassified bin. The `--require_both` option makes Deepbinner only bin reads with a matching start and end barcode, but this is very stringent and will result in far more unclassified reads.
+Since the native barcoding kit puts barcodes on both the start and end of reads, it makes sense to supply both models to Deepbinner. Most reads should have a barcode at the start, but barcodes at the end are less common. If a read has conflicting barcodes at the start and end, it will be put in the unclassified bin. The `--require_both` option makes Deepbinner only bin reads with a matching start and end barcode, but this is very stringent and will result in far more unclassified reads. If you are using rapid barcoding reads, then there is no end-read model – just use `-s SQK-RBK004_read_starts`.
 
 Here is the full usage for `deepbinner classify`:
 ```
 usage: deepbinner classify [-s START_MODEL] [-e END_MODEL] [--scan_size SCAN_SIZE]
                            [--score_diff SCORE_DIFF] [--require_both] [--batch_size BATCH_SIZE]
+                           [--intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS]
+                           [--inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS]
+                           [--device_count DEVICE_COUNT] [--omp_num_threads OMP_NUM_THREADS]
                            [--verbose] [-h]
                            input
 
 Classify fast5 reads
 
 Positional:
-  input                          One of the following: a single fast5 file, a directory of fast5
-                                 files (will be searched recursively) or a tab-delimited file of
-                                 training data
+  input                           One of the following: a single fast5 file, a directory of fast5
+                                  files (will be searched recursively) or a tab-delimited file of
+                                  training data
 
 Models (at least one is required):
   -s START_MODEL, --start_model START_MODEL
-                                 Model trained on the starts of reads
+                                  Model trained on the starts of reads
   -e END_MODEL, --end_model END_MODEL
-                                 Model trained on the ends of reads
+                                  Model trained on the ends of reads
 
 Barcoding:
-  --scan_size SCAN_SIZE          This much of a read's start/end signal will examined for barcode
-                                 signals (default: 6144)
-  --score_diff SCORE_DIFF        For a read to be classified, there must be this much difference
-                                 between the best and second-best barcode scores (default: 0.5)
-  --require_both                 When classifying reads using two models (read start and read end)
-                                 require both barcode calls to match to make the final call
-                                 (default: False)
+  --scan_size SCAN_SIZE           This much of a read's start/end signal will examined for barcode
+                                  signals (default: 6144)
+  --score_diff SCORE_DIFF         For a read to be classified, there must be this much difference
+                                  between the best and second-best barcode scores (default: 0.5)
+  --require_both                  When classifying reads using two models (read start and read end)
+                                  require both barcode calls to match to make the final call
+                                  (default: False)
 
 Performance:
-  --batch_size BATCH_SIZE        Neural network batch size (default: 256)
+  --batch_size BATCH_SIZE         Neural network batch size (default: 256)
   --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
-                                 TensorFlow's intra_op_parallelism_threads config option (default:
-                                 4)
+                                  TensorFlow's intra_op_parallelism_threads config option (default:
+                                  12)
   --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
-                                 TensorFlow's inter_op_parallelism_threads config option (default:
-                                 1)
-  --device_count DEVICE_COUNT    TensorFlow's device_count config option (default: 1)
+                                  TensorFlow's inter_op_parallelism_threads config option (default:
+                                  1)
+  --device_count DEVICE_COUNT     TensorFlow's device_count config option (default: 1)
   --omp_num_threads OMP_NUM_THREADS
-                                 OMP_NUM_THREADS environment variable value (default: 16)
+                                  OMP_NUM_THREADS environment variable value (default: 12)
 
 Other:
-  --verbose                      Include the output probabilities for all barcodes in the results
-                                 (default: just show the final barcode call)
-  -h, --help                     Show this help message and exit
-
+  --verbose                       Include the output probabilities for all barcodes in the results
+                                  (default: just show the final barcode call)
+  -h, --help                      Show this help message and exit
 ```
 
 
@@ -210,43 +224,46 @@ Here is the full usage for `deepbinner realtime` (many of the same options as th
 ```
 usage: deepbinner realtime --in_dir IN_DIR --out_dir OUT_DIR [-s START_MODEL] [-e END_MODEL]
                            [--scan_size SCAN_SIZE] [--score_diff SCORE_DIFF] [--require_both]
-                           [--batch_size BATCH_SIZE] [-h]
+                           [--batch_size BATCH_SIZE]
+                           [--intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS]
+                           [--inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS]
+                           [--device_count DEVICE_COUNT] [--omp_num_threads OMP_NUM_THREADS] [-h]
 
 Sort fast5 files during sequencing
 
 Required:
-  --in_dir IN_DIR                Directory where sequencer deposits fast5 files
-  --out_dir OUT_DIR              Directory to output binned fast5 files
+  --in_dir IN_DIR                 Directory where sequencer deposits fast5 files
+  --out_dir OUT_DIR               Directory to output binned fast5 files
 
 Models (at least one is required):
   -s START_MODEL, --start_model START_MODEL
-                                 Model trained on the starts of reads
+                                  Model trained on the starts of reads
   -e END_MODEL, --end_model END_MODEL
-                                 Model trained on the ends of reads
+                                  Model trained on the ends of reads
 
 Barcoding:
-  --scan_size SCAN_SIZE          This much of a read's start/end signal will examined for barcode
-                                 signals (default: 6144)
-  --score_diff SCORE_DIFF        For a read to be classified, there must be this much difference
-                                 between the best and second-best barcode scores (default: 0.5)
-  --require_both                 When classifying reads using two models (read start and read end)
-                                 require both barcode calls to match to make the final call
-                                 (default: False)
+  --scan_size SCAN_SIZE           This much of a read's start/end signal will examined for barcode
+                                  signals (default: 6144)
+  --score_diff SCORE_DIFF         For a read to be classified, there must be this much difference
+                                  between the best and second-best barcode scores (default: 0.5)
+  --require_both                  When classifying reads using two models (read start and read end)
+                                  require both barcode calls to match to make the final call
+                                  (default: False)
 
 Performance:
-  --batch_size BATCH_SIZE        Neural network batch size (default: 256)
+  --batch_size BATCH_SIZE         Neural network batch size (default: 256)
   --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
-                                 TensorFlow's intra_op_parallelism_threads config option (default:
-                                 4)
+                                  TensorFlow's intra_op_parallelism_threads config option (default:
+                                  12)
   --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
-                                 TensorFlow's inter_op_parallelism_threads config option (default:
-                                 1)
-  --device_count DEVICE_COUNT    TensorFlow's device_count config option (default: 1)
+                                  TensorFlow's inter_op_parallelism_threads config option (default:
+                                  1)
+  --device_count DEVICE_COUNT     TensorFlow's device_count config option (default: 1)
   --omp_num_threads OMP_NUM_THREADS
-                                 OMP_NUM_THREADS environment variable value (default: 16)
+                                  OMP_NUM_THREADS environment variable value (default: 12)
 
 Other:
-  -h, --help                     Show this help message and exit
+  -h, --help                      Show this help message and exit
 ```
 
 
@@ -285,7 +302,7 @@ done
 
 ## Performance
 
-Deepbinner lives up to its name by using a very _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a typical MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 15 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
+Deepbinner lives up to its name by using a _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a typical MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 15 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
 
 Running Deepbinner on a GPU can give much better performance. My tests on a Tesla K80 could classify over 100 reads/sec. Modern GPUs could probably do even better.
 
@@ -307,9 +324,7 @@ If you can meet those requirements, then read on in the [Deepbinner training ins
 
 As always, the wider community is welcome to contribute to Deepbinner by submitting [issues](https://github.com/rrwick/Deepbinner/issues) or [pull requests](https://github.com/rrwick/Deepbinner/pulls).
 
-However, I have a particular need for one kind of contribution: reads! [The lab where I work](https://holtlab.net/) has mainly used R9.4/R9.5 flowcells with the native barcoding kit. Reads from the rapid barcoding kit (both the older SQK-RBK001 and newer SQK-RBK004) would be very helpful. If you have any, please let me know via email or an [issue](https://github.com/rrwick/Deepbinner/issues). If I could get enough, I'll train a new model and include it in Deepbinner's repo. Since the rapid kit only puts barcodes on the start of the read, I will only need to train a single model, not two (read start and read ends) like I did for native barcoding reads.
-
-A caveat: the reads should be from whole genome sequencing runs of bacterial genomes or larger. I'm concerned that if the reads came from amplicons or small (e.g. viral) genomes, then the neural network might learn to recognise the sequenced material in addition to the barcode – not what we want! Random whole genome sequencing ensures that the sequenced material is mostly different in each read, so the network must learn to recognise the _barcodes_.
+I also have a particular need for one kind of contribution: training reads! [The lab where I work](https://holtlab.net/) has mainly used R9.4/R9.5 flowcells with the SQK-LSK108 kit. If you have other types of reads that you can share, I'd be interested ([see here for more info](models)).
 
 
 
@@ -317,6 +332,9 @@ A caveat: the reads should be from whole genome sequencing runs of bacterial gen
 ## Acknowledgments
 
 I would like to thank [James Ferguson](@Psy-Fer) from [the Garvan Institute](https://www.garvan.org.au/). We met at the Nanopore Day Melbourne event in February 2018 where I saw him present on raw signal detection of barcodes. It was then that the seeds of Deepbinner were sown!
+
+I'm also in debt to [Matthew Croxen](https://twitter.com/m_croxen) for sharing his SQK-RBK004 rapid barcoding reads with me – they were used to build Deepbinner's pre-trained model for that kit.
+
 
 
 
