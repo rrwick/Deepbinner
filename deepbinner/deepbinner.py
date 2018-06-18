@@ -242,8 +242,13 @@ def train_subparser(subparsers):
                        help='Data augmentation factor (1 = no augmentation)')
     group.add_argument('--batch_size', type=int, required=False, default=128,
                        help='Training batch size')
-    group.add_argument('--test_fraction', type=float, required=False, default=0.1,
-                       help='This fraction of the training samples will be used as a test set')
+
+    group.add_argument('--val_fraction', type=float, required=False, default=0.1,
+                       help='This fraction of the training data will be used as a validation'
+                            'set')
+    group.add_argument('--val_data', type=str, required=False,
+                       help='If supplied, Deepbinner will use this set for validation (instead of '
+                            'partitioning off part of the training set)')
 
 
 def refine_subparser(subparsers):

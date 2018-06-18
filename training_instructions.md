@@ -78,12 +78,38 @@ deepbinner train training_read_ends read_end_model
 
 This part can be quite time consuming, and so a big GPU is definitely recommended! Even with a big GPU, it may take many hours to finish.
 
-Options to change some parameters:
+Full usage for `deepbinner train`:
+```
+usage: deepbinner train [-h] [--signal_size SIGNAL_SIZE] [--epochs EPOCHS] [--aug AUG]
+                        [--batch_size BATCH_SIZE] [--val_fraction VAL_FRACTION] [--val_data VAL_DATA]
+                        training_data model_out
 
-* `--signal_size`: how much of the raw signal the network should process at once. I've only ever used 1024 (the default), so don't change this value without good reason.
-* `--epochs`: Too few and the network won't get good enough. Too many and it's a waste of time.
+Train the neural network
+
+positional arguments:
+  training_data                Balanced training data produced by the balance command
+  model_out                    Filename for the trained model
+
+optional arguments:
+  -h, --help                   show this help message and exit
+  --signal_size SIGNAL_SIZE    Amount of signal (number of samples) that will be used in the neural
+                               network (default: 1024)
+  --epochs EPOCHS              Number of training epochs (default: 100)
+  --aug AUG                    Data augmentation factor (1 = no augmentation) (default: 2)
+  --batch_size BATCH_SIZE      Training batch size (default: 128)
+  --val_fraction VAL_FRACTION  This fraction of the training data will be used as a validationset
+                               (default: 0.1)
+  --val_data VAL_DATA          If supplied, Deepbinner will use this set for validation (instead of
+                               partitioning off part of the training set)
+```
+
+Notes on some parameters:
+
+* `--signal_size`: I've only ever used 1024 (the default), so don't change this value without good reason.
+* `--epochs`: Too few and the network won't get good enough. Too many and it's a waste of time and you might risk overtraining a bit.
 * `--batch_size`: Larger values may work better but will use more memory.
-* `--test_fraction`: What fraction of the data will be set aside for use as a validation set. If you have no interest in assessing the model, set this to 0 to use all of your data for training.
+* `--val_fraction`: What fraction of the data will be set aside for use as a validation set. If you have no interest in assessing the model, set this to 0 to use all of your data for training.
+* `--val_data`: If you use this option, the `--val_fraction` setting will be ignored.
 
 If you would like to [design your own CNN architecture](https://keras.io/getting-started/functional-api-guide/), you'll need to code it up yourself by modifying the `build_network` function in `network_architecture.py`.
 

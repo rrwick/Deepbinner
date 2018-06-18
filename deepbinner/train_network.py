@@ -32,67 +32,52 @@ def train(args):
     model.summary()
     print('\n')
 
-    signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
+    training_signals, training_labels, validation_signals, validation_labels = \
+        load_training_and_validation_data(args, class_count)
 
-    # Partition off some of the data for use as a validation set.
-    validation_count = int(len(signals) * args.test_fraction)
-    if validation_count > 0:
-        validation_signals = signals[:validation_count]
-        validation_labels = labels[:validation_count]
-        training_signals = signals[validation_count:]
-        training_labels = labels[validation_count:]
-
-    # If we are training using all the data, then we don't divide into training and test. Instead,
-    # the same data (all of it) is used for both.
-    else:
-        validation_signals, validation_labels = signals, labels
-        training_signals, training_labels = signals, labels
-
-    print('Training/validation split: {}, {}'.format(len(training_signals),
-                                                     len(validation_signals)))
-
-    training_signals, training_labels = augment_data(training_signals, training_labels,
-                                                     args.signal_size, class_count,
-                                                     augmentation_factor=args.aug)
-
-    training_signals = np.expand_dims(training_signals, axis=2)
     validation_signals = np.expand_dims(validation_signals, axis=2)
 
     model.compile(optimizer='adam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    before_time = time.time()
-    hist = model.fit(training_signals, training_labels,
-                     epochs=args.epochs,
-                     batch_size=args.batch_size,
-                     shuffle=True,
-                     validation_data=(validation_signals, validation_labels))
-    after_time = time.time()
-    training_time_minutes = (after_time - before_time) / 60
+    for _ in range(args.epochs):
+        # Augmentation is redone after each epoch.
+        augmented_signals, augmented_labels = augment_data(training_signals, training_labels,
+                                                           args.signal_size, class_count,
+                                                           augmentation_factor=args.aug)
+        augmented_signals = np.expand_dims(augmented_signals, axis=2)
 
-    final_acc = hist.history['acc'][-1]
-    final_val_acc = hist.history['val_acc'][-1]
-    mean_5_best_acc = np.mean(sorted(hist.history['acc'][-5:]))
-    mean_5_best_val_acc = np.mean(sorted(hist.history['val_acc'][-5:]))
-    prediction_time_ms = time_model_prediction(model, validation_signals)
-
-    print('\n')
-    print('\t'.join(['final_acc',
-                     'final_val_acc',
-                     'mean_5_best_acc',
-                     'mean_5_best_val_acc',
-                     'training_time_minutes',
-                     'prediction_time_ms']))
-    print('\t'.join(['%.4f' % final_acc,
-                     '%.4f' % final_val_acc,
-                     '%.4f' % mean_5_best_acc,
-                     '%.4f' % mean_5_best_val_acc,
-                     '%.4f' % training_time_minutes,
-                     '%.4f' % prediction_time_ms]))
-
-    model.save(args.model_out)
+        model.fit(augmented_signals, augmented_labels, epochs=1, batch_size=args.batch_size,
+                  shuffle=True, validation_data=(validation_signals, validation_labels))
+        model.save(args.model_out)
     print()
+
+
+def load_training_and_validation_data(args, class_count):
+    signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
+    validation_count = int(len(signals) * args.val_fraction)
+
+    # If the user supplied separate validation data, then just use that.
+    if args.val_data:
+        validation_signals, validation_labels = load_training_set(args.val_data, args.signal_size,
+                                                                  class_count, label='validation')
+        return signals, labels, validation_signals, validation_labels
+
+    # Partition off some of the data for use as a validation set.
+    elif validation_count > 0:
+        validation_signals = signals[:validation_count]
+        validation_labels = labels[:validation_count]
+        training_signals = signals[validation_count:]
+        training_labels = labels[validation_count:]
+        print('Training/validation split: {}, {}'.format(len(training_signals),
+                                                         len(validation_signals)))
+        return training_signals, training_labels, validation_signals, validation_labels
+
+    # If we are training using all the data, then we don't divide into training and test. Instead,
+    # the same data (all of it) is used for both.
+    else:
+        return signals, labels, signals, labels
 
 
 def determine_class_count(training_data_filename):
@@ -112,11 +97,11 @@ def determine_class_count(training_data_filename):
     return class_count
 
 
-def load_training_set(training_data_filename, signal_size, class_count):
+def load_training_set(training_data_filename, signal_size, class_count, label='training'):
     training_data = []
 
     print()
-    print('Loading data from file... ', end='')
+    print('Loading {} data from file... '.format(label), end='')
     with open(training_data_filename, 'rt') as training_data_text:
         for line in training_data_text:
             parts = line.strip().split('\t')
@@ -127,10 +112,9 @@ def load_training_set(training_data_filename, signal_size, class_count):
     random.shuffle(training_data)
 
     print()
-    print('Preparing signal data', end='')
+    print('Preparing {} signal data'.format(label), end='')
     signals, labels = load_data_into_numpy(training_data, signal_size, class_count)
     print(' done')
-    print()
 
     return signals, labels
 
@@ -204,8 +188,6 @@ def augment_data(signals, labels, signal_size, class_count, augmentation_factor)
     assert i == augmented_data_count
 
     print('done')
-    print()
-    print('Final training data:', len(augmented_signals), 'samples')
     print()
 
     # Plot signals (for debugging)
