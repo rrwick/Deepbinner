@@ -123,6 +123,8 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
 
         for i, fast5_file in enumerate(fast5_batch):
             read_id, signal = get_read_id_and_signal(fast5_file)
+            if signal is None:
+                continue
             read_id_to_fast5_file[read_id] = fast5_file
             read_ids.append(read_id)
             signals.append(signal)
