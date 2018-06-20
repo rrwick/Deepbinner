@@ -70,7 +70,7 @@ def classify_and_move(fast5s, args, start_model, start_input_size, end_model, en
 
     # We don't classify all found fast5s, because if there are a ton it will take a long time to
     # finish, and nothing will be moved while we wait. Instead we grab the first
-    fast5s = fast5s[:args.batch_size * 10]
+    fast5s = fast5s[:args.batch_size * 100]
 
     classifications, read_id_to_fast5_file = \
         classify_fast5_files(fast5s, start_model, start_input_size, end_model, end_input_size,
