@@ -233,9 +233,8 @@ def train_subparser(subparsers):
                        help='Filename for the trained model')
 
     # Optional arguments
-    group.add_argument('--signal_size', type=int, required=False, default=1024,
-                       help='Amount of signal (number of samples) that will be used in the neural '
-                            'network')
+    group.add_argument('--model_in', type=str,
+                       help='An existing model to use as a starting point for training')
     group.add_argument('--epochs', type=int, required=False, default=100,
                        help='Number of training epochs')
     group.add_argument('--aug', type=int, required=False, default=2,

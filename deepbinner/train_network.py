@@ -20,20 +20,34 @@ from keras.layers import Input
 from keras.models import Model
 from .network_architecture import build_network
 from .trim_signal import normalise
+from .classify import load_trained_model
 
 
 def train(args):
     print()
     class_count = determine_class_count(args.training_data)
-    inputs = Input(shape=(1024, 1))
-    predictions = build_network(inputs, class_count)
+    signal_size = determine_signal_size(args.training_data)
 
-    model = Model(inputs=inputs, outputs=predictions)
-    model.summary()
-    print('\n')
+    # If the user provided a model to start with, we load that
+    if args.model_in:
+        model, input_size, output_size = load_trained_model(args.model_in, out_dest=sys.stdout)
+        if input_size != signal_size:
+            sys.exit('Error: the provided model\'s input size ({}) are not equal to the '
+                     'training data\'s size ({})'.format(input_size, signal_size))
+        if output_size != class_count:
+            sys.exit('Error: the provided model\'s output classes ({}) are not equal to the '
+                     'training data\'s classes ({})'.format(output_size, class_count))
+
+    # If a starting model wasn't provided, a fresh one is built from scratch.
+    else:
+        inputs = Input(shape=(signal_size, 1))
+        predictions = build_network(inputs, class_count)
+        model = Model(inputs=inputs, outputs=predictions)
+        model.summary()
+        print()
 
     training_signals, training_labels, validation_signals, validation_labels = \
-        load_training_and_validation_data(args, class_count)
+        load_training_and_validation_data(args, class_count, signal_size)
 
     validation_signals = np.expand_dims(validation_signals, axis=2)
 
@@ -44,7 +58,7 @@ def train(args):
     for _ in range(args.epochs):
         # Augmentation is redone after each epoch.
         augmented_signals, augmented_labels = augment_data(training_signals, training_labels,
-                                                           args.signal_size, class_count,
+                                                           signal_size, class_count,
                                                            augmentation_factor=args.aug)
         augmented_signals = np.expand_dims(augmented_signals, axis=2)
 
@@ -54,13 +68,13 @@ def train(args):
     print()
 
 
-def load_training_and_validation_data(args, class_count):
-    signals, labels = load_training_set(args.training_data, args.signal_size, class_count)
+def load_training_and_validation_data(args, class_count, signal_size):
+    signals, labels = load_training_set(args.training_data, signal_size, class_count)
     validation_count = int(len(signals) * args.val_fraction)
 
     # If the user supplied separate validation data, then just use that.
     if args.val_data:
-        validation_signals, validation_labels = load_training_set(args.val_data, args.signal_size,
+        validation_signals, validation_labels = load_training_set(args.val_data, signal_size,
                                                                   class_count, label='validation')
         return signals, labels, validation_signals, validation_labels
 
@@ -93,8 +107,31 @@ def determine_class_count(training_data_filename):
                  'in {}'.format(training_data_filename))
     class_count = max(barcodes) + 1
     print('Number of possible barcode classifications = {}'.format(class_count))
-    print('  (1-{} plus a no barcode class)'.format(class_count-1))
+    print('  (1-{} plus a no-barcode class)'.format(class_count-1))
+    print()
     return class_count
+
+
+def determine_signal_size(training_data_filename):
+    signal_sizes = []
+    i = 0
+    with open(training_data_filename, 'rt') as training_data_text:
+        for line in training_data_text:
+            parts = line.strip().split('\t')
+            if len(parts) != 2:
+                sys.exit('Error: training signal not formatted correctly')
+            signal_size = len(parts[1].split(','))
+            signal_sizes.append(signal_size)
+            i += 1
+            if i >= 100:  # don't bother looking at all of them
+                break
+    min_size, max_size = min(signal_sizes), max(signal_sizes)
+    if min_size != max_size:
+        sys.exit('Error: inconsistent signal sizes in training data')
+
+    print('Training data signal length = {}'.format(max_size))
+    print()
+    return max_size
 
 
 def load_training_set(training_data_filename, signal_size, class_count, label='training'):
@@ -120,10 +157,6 @@ def load_training_set(training_data_filename, signal_size, class_count, label='t
 
 
 def load_data_into_numpy(data_list, signal_size, class_count):
-
-    # TO DO: do I need signal_size? I could instead just make sure that the data being loaded has a
-    #        consistent size.
-
     signals = np.empty([len(data_list), signal_size], dtype=float)
     labels = np.empty([len(data_list), class_count], dtype=float)
 
@@ -132,7 +165,9 @@ def load_data_into_numpy(data_list, signal_size, class_count):
         label = int(label)
 
         signal = [float(x) for x in signal.split(',')]
-        assert len(signal) == signal_size
+        if len(signal) != signal_size:
+            sys.exit('Error: signal length in training data is inconsistent (expected signal '
+                     'of {} but got {}'.format(signal_size, len(signal)))
 
         signal = normalise(signal)
 
