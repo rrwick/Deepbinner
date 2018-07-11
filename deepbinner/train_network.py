@@ -28,11 +28,11 @@ def train(args):
     class_count = determine_class_count(args.training_data)
     signal_size = determine_signal_size(args.training_data)
 
-    # If the user provided a model to start with, we load that
+    # If the user provided a model to start with, we load that.
     if args.model_in:
         model, input_size, output_size = load_trained_model(args.model_in, out_dest=sys.stdout)
         if input_size != signal_size:
-            sys.exit('Error: the provided model\'s input size ({}) are not equal to the '
+            sys.exit('Error: the provided model\'s input size ({}) is not equal to the '
                      'training data\'s size ({})'.format(input_size, signal_size))
         if output_size != class_count:
             sys.exit('Error: the provided model\'s output classes ({}) are not equal to the '
