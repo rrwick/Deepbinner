@@ -11,6 +11,8 @@ Deepbinner is a tool for demultiplexing barcoded [Oxford Nanopore](https://nanop
    * You have a small/slow computer. Deepbinner is more computationally intensive than [Porechop](https://github.com/rrwick/Porechop).
    * You used a sequencing/barcoding kit other than [the ones Deepbinner was trained on](models).
 
+You can read more about Deepbinner in this preprint:<br>
+[Wick RR, Judd LM, Holt KE. Deepbinner: Demultiplexing barcoded Oxford Nanopore reads with deep convolutional neural networks. bioRxiv. 2018; doi:10.1101/366526.](https://www.biorxiv.org/content/early/2018/07/10/366526)
 
 
 
