@@ -98,7 +98,7 @@ def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
             fail_move_already_exists += 1
         else:
             try:
-                shutil.move(fast5_file, out_dir)
+                shutil.move(fast5_file, str(out_dir))
                 move_count += 1
             except (FileNotFoundError, OSError, PermissionError):
                 fail_move_other_reason += 1
