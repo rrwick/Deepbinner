@@ -20,7 +20,6 @@ import time
 from .misc import print_summary_table
 
 from .classify import load_and_check_models, classify_fast5_files, set_tensorflow_threads
-from .bin import class_to_class_names
 
 
 def realtime(args):
@@ -86,7 +85,7 @@ def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
     for read_id, barcode_call in classifications.items():
         fast5_file = read_id_to_fast5_file[read_id]
 
-        out_dir = pathlib.Path(args.out_dir) / class_to_class_names(barcode_call)
+        out_dir = pathlib.Path(args.out_dir) / get_directory_name(barcode_call)
         if not out_dir.is_dir():
             try:
                 os.makedirs(str(out_dir))
@@ -112,6 +111,13 @@ def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
     # If we couldn't move any files, then something is wrong and we should quit.
     if move_count == 0:
         sys.exit('Error: no files were successfully moved to {}'.format(args.out_dir))
+
+
+def get_directory_name(barcode_call):
+    if barcode_call == 'none':
+        return 'unclassified'
+    else:
+        return 'barcode{:02d}'.format(int(barcode_call))
 
 
 def print_moving_error_messages(already_exists, other_reason, out_dir):
