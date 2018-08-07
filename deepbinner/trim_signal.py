@@ -83,7 +83,7 @@ def find_signal_start_pos(signal):
     look_forward_windows = 5
     window_count_threshold = 4
 
-    # Always trim off the first few bases as these are often dodgy.
+    # Always trim off the first few values as these are often dodgy.
     pos = initial_trim_size
 
     # Look at the stdev of the signal in the upcoming windows. Trimming is finished when:

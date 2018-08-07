@@ -19,7 +19,7 @@ import re
 
 from .load_fast5s import get_read_id_and_signal, find_all_fast5s
 from .misc import load_fastq
-from .trim_signal import normalise
+from .trim_signal import normalise, find_signal_start_pos, CannotTrim
 from .dtw import semi_global_dtw_with_rescaling
 from . import sequences
 from . import signals
@@ -30,7 +30,8 @@ MIN_BARCODE_IDENTITY = 70.0
 MIN_BEST_SECOND_BEST_DIFF = 5.0
 MIN_REFERENCE_IDENTITY = 70.0
 MIN_READ_COVERAGE = 70.0
-ACCEPTABLE_GAP = 4
+ADAPTER_BARCODE_ACCEPTABLE_GAP = 4
+BARCODE_REFERENCE_ACCEPTABLE_GAP = 10
 
 
 def prep(args):
@@ -57,21 +58,21 @@ def prep(args):
         print('  read ID: {}'.format(read_id))
 
         if args.kit == 'EXP-NBD103' and args.start_end == 'start':
-            prep_native_read_start(read_id, signal, read_seqs[read_id], mappy_aligner,
-                                   args.signal_size)
+            prep_native_read_start(signal, read_seqs[read_id], mappy_aligner, args.signal_size)
         if args.kit == 'EXP-NBD103' and args.start_end == 'end':
             prep_native_read_end()
         elif args.kit == 'SQK-RBK004' and args.start_end == 'start':
             prep_rapid_read_start()
 
 
-def prep_native_read_start(read_id, signal, basecalled_seq, mappy_aligner, signal_size):
+def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
 
     # First, we make sure the read aligns to the reference.
     ref_id, read_cov, ref_start, ref_end = minimap_align(basecalled_seq, mappy_aligner)
     if ref_id < MIN_REFERENCE_IDENTITY or read_cov < MIN_READ_COVERAGE:
         print('SKIPPING: poor alignment to reference')
         return
+    print('  reference seq: {}-{} ({:.1f}%)'.format(ref_start, ref_end, ref_id))
 
     # Next, we look for the adapter sequence at the start of the basecalled read.
     basecalled_start = basecalled_seq[:500]
@@ -82,18 +83,28 @@ def prep_native_read_start(read_id, signal, basecalled_seq, mappy_aligner, signa
         print('SKIPPING: adapter aligned with low identity')
         return
 
+    # Skip open-pore signal at the start of the read.
+    try:
+        start_trim_pos = find_signal_start_pos(signal)
+    except CannotTrim:
+        print('SKIPPING: cannot trim read')
+        return
+    print('  trim amount: {}'.format(start_trim_pos))
+    signal = signal[start_trim_pos:]
+
     # Now we look for the adapter signal in the read signal using DTW.
     signal = normalise(signal)
-    for i in range(0, 20000, 500):
+    for i in range(0, 15000, 500):
         adapter_search_signal = signal[i:i+1500]
         if len(adapter_search_signal) > 0:
             adapter_distance, adapter_signal_start, adapter_signal_end, _ = \
-                semi_global_dtw_with_rescaling(adapter_search_signal, signals.native_start_kit_adapter)
+                semi_global_dtw_with_rescaling(adapter_search_signal,
+                                               signals.native_start_kit_adapter)
             adapter_signal_start += i
             adapter_signal_end += i
-            print('  adapter DTW: {}-{} ({:.2f})'.format(adapter_signal_start, adapter_signal_end,
-                                                         adapter_distance))
-            if adapter_distance <= 100.0:
+            if adapter_distance <= 50.0:
+                print('  adapter DTW: {}-{} ({:.2f})'.format(adapter_signal_start,
+                                                             adapter_signal_end, adapter_distance))
                 break
     else:
         print('SKIPPING: adapter aligned with high DTW distance')
@@ -108,7 +119,7 @@ def prep_native_read_start(read_id, signal, basecalled_seq, mappy_aligner, signa
     # If there isn't a barcode and the reference sequence follows the ligation adapter, then this
     # is a genuine no-barcode read.
     if (barcode_name == 'none' or barcode_name == 'too close') and \
-            abs(adapter_end - ref_start) <= ACCEPTABLE_GAP:
+            abs(adapter_end - ref_start) <= ADAPTER_BARCODE_ACCEPTABLE_GAP:
         print('GOOD NO-BARCODE TRAINING READ')
         print('  base coords: adapter: {}-{} ({:.1f}%),'
               ' ref: {}-{}'.format(adapter_start, adapter_end, adapter_identity,
@@ -120,9 +131,13 @@ def prep_native_read_start(read_id, signal, basecalled_seq, mappy_aligner, signa
         return
 
     # See if the arrangement of elements in the basecalled read looks too weird.
-    elif abs(adapter_end - barcode_start) > ACCEPTABLE_GAP or \
-            abs(barcode_end - ref_start) > ACCEPTABLE_GAP:
-        print('SKIPPING: read elements oddly arranged')
+    elif abs(adapter_end - barcode_start) > ADAPTER_BARCODE_ACCEPTABLE_GAP:
+        print('SKIPPING: adapter and barcode oddly spaced')
+        return
+
+    # See if the arrangement of elements in the basecalled read looks too weird.
+    elif abs(barcode_end - ref_start) > BARCODE_REFERENCE_ACCEPTABLE_GAP:
+        print('SKIPPING: barcode and reference oddly spaced')
         return
 
     # If the arrangement is good, then we check for the barcode in the signal with DTW.
@@ -141,7 +156,7 @@ def prep_native_read_start(read_id, signal, basecalled_seq, mappy_aligner, signa
     print('  adapter-barcode signal gap: {}'.format(adapter_barcode_gap))
     print('  barcode signal size: {}'.format(barcode_signal_end - barcode_signal_start))
     if adapter_barcode_gap < 10 or adapter_barcode_gap > 500:
-        print('SKIPPING: read elements oddly arranged')
+        print('SKIPPING: read signal elements oddly arranged')
         return
 
     print('GOOD BARCODE {} TRAINING READ'.format(barcode_name))
