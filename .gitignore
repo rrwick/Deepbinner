@@ -5,6 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
+*.o
 
 # Distribution / packaging
 .Python
@@ -97,3 +98,6 @@ ENV/
 
 gh-md-toc
 
+# CLion stuff
+CMakeLists.txt
+cmake-build-debug/

@@ -26,7 +26,7 @@ def main():
     classify_subparser(subparsers)
     bin_subparser(subparsers)
     realtime_subparser(subparsers)
-    porechop_subparser(subparsers)
+    prep_subparser(subparsers)
     balance_subparser(subparsers)
     train_subparser(subparsers)
     refine_subparser(subparsers)
@@ -67,9 +67,10 @@ def main():
         from .realtime import realtime
         realtime(args)
 
-    elif args.subparser_name == 'porechop':
-        from .porechop import training_data_from_porechop
-        training_data_from_porechop(args)
+    elif args.subparser_name == 'prep':
+        check_prep_arguments(args)
+        from .prep import prep
+        prep(args)
 
     elif args.subparser_name == 'balance':
         check_balance_arguments(args)
@@ -176,27 +177,36 @@ def realtime_subparser(subparsers):
                             help='Show this help message and exit')
 
 
-def porechop_subparser(subparsers):
-    group = subparsers.add_parser('porechop', description='Prepare training data using Porechop',
-                                  formatter_class=MyHelpFormatter)
+def prep_subparser(subparsers):
+    group = subparsers.add_parser('prep', description='Prepare training data',
+                                  formatter_class=MyHelpFormatter, add_help=False)
 
-    # Positional arguments
-    group.add_argument('porechop_out', type=str,
-                       help='A file containing the output of Porechop (must have been run with '
-                            '--verbosity 3)')
-    group.add_argument('fast5_dir', type=str,
-                       help='The directory containing the fast5 files (will be searched '
-                            'recursively, so can contain subdirectories)')
+    required_args = group.add_argument_group('Required')
+    required_args.add_argument('--fastq', type=str, required=True,
+                               help='a FASTQ file of basecalled reads')
+    required_args.add_argument('--fast5_dir', type=str, required=True,
+                               help='The directory containing the fast5 files (will be searched '
+                                    'recursively, so can contain subdirectories)')
+    required_args.add_argument('--kit', type=str, required=True,
+                               choices=['EXP-NBD103', 'SQK-RBK004'],
+                               help='Which kit was used to sequence the data')
+    required_args.add_argument('--flowcell', type=str, required=True,
+                               choices=['FLO-MIN106', 'FLO-MIN107'],
+                               help='Which flowcell was used to sequence the data')
+    required_args.add_argument('--start_end', type=str, required=True,
+                               choices=['start', 'end'],
+                               help='Whether to prep data for read starts or read ends')
 
-    # Optional arguments
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('--ref_fasta', type=str,
+                            help='Reference FASTA file (required for EXP-NBD103 kit)')
     group.add_argument('--signal_size', type=int, required=False, default=1024,
                        help='Amount of signal (number of samples) that will be used in the neural '
                             'network')
-    group.add_argument('--max_start_end_margin', type=float, required=False, default=6000,
-                       help="Up to this much of a read's start/end signal will be saved")
-    group.add_argument('--min_signal_length', type=float, required=False, default=20000,
-                       help='Reads with fewer than this many signals are excluded from the '
-                            'training data')
+
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
+                            help='Show this help message and exit')
 
 
 def balance_subparser(subparsers):
@@ -205,7 +215,7 @@ def balance_subparser(subparsers):
 
     # Positional arguments
     group.add_argument('training_data', type=str,
-                       help='Raw training data produced by the porechop command')
+                       help='Raw training data produced by the prep command')
     group.add_argument('out_prefix', type=str,
                        help='Prefix for the output files (*_read_starts and *_read_ends)')
 
@@ -270,6 +280,11 @@ def check_classify_and_realtime_arguments(args):
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
+
+
+def check_prep_arguments(args):
+    if args.kit == 'EXP-NBD103' and args.ref_fasta is None:
+            sys.exit('Error: --ref_fasta is required for the EXP-NBD103 kit')
 
 
 def check_balance_arguments(args):
