@@ -42,6 +42,7 @@ def prep(args):
 
     read_seqs = load_fastq(args.fastq)
 
+    # For the ligation kit we need to align to reference (but not for the rapid kit).
     if args.kit == 'EXP-NBD103':
         mappy_aligner = mp.Aligner(args.ref_fasta)
     else:
@@ -58,41 +59,27 @@ def prep(args):
 
         if args.kit == 'EXP-NBD103' and args.start_end == 'start':
             prep_native_read_start(signal, read_seqs[read_id], mappy_aligner, args.signal_size)
+
         if args.kit == 'EXP-NBD103' and args.start_end == 'end':
             prep_native_read_end()
+
         elif args.kit == 'SQK-RBK004' and args.start_end == 'start':
             prep_rapid_read_start()
 
 
 def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
-
-    # First, we make sure the read aligns to the reference.
-    ref_id, read_cov, ref_start, ref_end = minimap_align(basecalled_seq, mappy_aligner)
-    if ref_id < MIN_REFERENCE_IDENTITY or read_cov < MIN_READ_COVERAGE:
-        print('SKIPPING: poor alignment to reference')
+    ref_start, ref_end = align_read_to_reference(basecalled_seq, mappy_aligner)
+    if ref_start is None:
         return
-    print('  reference seq: {}-{} ({:.1f}%)'.format(ref_start, ref_end, ref_id))
 
-    # Next, we look for the adapter sequence at the start of the basecalled read.
     basecalled_start = basecalled_seq[:500]
-    adapter_identity, adapter_start, adapter_end = edlib_align(sequences.native_start_kit_adapter,
-                                                               basecalled_start)
-    print('  adapter seq: {}-{} ({:.1f}%)'.format(adapter_start, adapter_end, adapter_identity))
-    if adapter_identity < MIN_ADAPTER_IDENTITY:
-        print('SKIPPING: adapter aligned with low identity')
+    adapter_start, adapter_end = align_read_to_adapter(basecalled_start)
+    if adapter_start is None:
         return
 
-    # Skip open-pore signal at the start of the read.
-    try:
-        start_trim_pos = find_signal_start_pos(signal)
-    except CannotTrim:
-        print('SKIPPING: cannot trim read')
-        return
-    print('  trim amount: {}'.format(start_trim_pos))
-    signal = signal[start_trim_pos:]
+    signal = trim_and_normalise(signal)
 
     # Now we look for the adapter signal in the read signal using DTW.
-    signal = normalise(signal)
     for i in range(0, 15000, 500):
         adapter_search_signal = signal[i:i+1500]
         if len(adapter_search_signal) > 0:
@@ -121,9 +108,8 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
         # this is a genuine no-barcode read.
         if abs(adapter_end - ref_start) <= ADAPTER_BARCODE_ACCEPTABLE_GAP:
             print('GOOD NO-BARCODE TRAINING READ')
-            print('  base coords: adapter: {}-{} ({:.1f}%),'
-                  ' ref: {}-{}'.format(adapter_start, adapter_end, adapter_identity,
-                                       ref_start, ref_end))
+            print('  base coords: adapter: {}-{},'
+                  ' ref: {}-{}'.format(adapter_start, adapter_end, ref_start, ref_end))
             print('  signal coords: adapter: {}-{}'.format(adapter_signal_end, adapter_signal_end))
             training_sample = get_training_samples_from_signal(signal, adapter_signal_end - 10,
                                                               adapter_signal_end + 10, signal_size)
@@ -182,8 +168,8 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
         return
 
     print('GOOD BARCODE {} TRAINING READ'.format(barcode_name))
-    print('  base coords: adapter: {}-{} ({:.1f}%), barcode{}: {}-{} ({:.1f}%), '
-          'ref: {}-{}'.format(adapter_start, adapter_end, adapter_identity, barcode_name,
+    print('  base coords: adapter: {}-{}, barcode{}: {}-{} ({:.1f}%), '
+          'ref: {}-{}'.format(adapter_start, adapter_end, barcode_name,
                               barcode_start, barcode_end, barcode_identity, ref_start, ref_end))
     print('  signal coords: adapter: {}-{}, '
           'barcode: {}-{}'.format(adapter_signal_end, adapter_signal_end,
@@ -199,6 +185,37 @@ def prep_native_read_end():
 
 def prep_rapid_read_start():
     pass
+
+
+def align_read_to_reference(basecalled_seq, mappy_aligner):
+    ref_id, read_cov, ref_start, ref_end = minimap_align(basecalled_seq, mappy_aligner)
+    if ref_id < MIN_REFERENCE_IDENTITY or read_cov < MIN_READ_COVERAGE:
+        print('SKIPPING: poor alignment to reference')
+        return None, None
+    else:
+        print('  reference seq: {}-{} ({:.1f}%)'.format(ref_start, ref_end, ref_id))
+        return ref_start, ref_end
+
+
+def align_read_to_adapter(basecalled_start):
+    adapter_identity, adapter_start, adapter_end = edlib_align(sequences.native_start_kit_adapter,
+                                                               basecalled_start)
+    print('  adapter seq: {}-{} ({:.1f}%)'.format(adapter_start, adapter_end, adapter_identity))
+    if adapter_identity < MIN_ADAPTER_IDENTITY:
+        print('SKIPPING: adapter aligned with low identity')
+        return None, None
+    else:
+        return adapter_start, adapter_end
+
+
+def trim_and_normalise(signal):
+    try:
+        start_trim_pos = find_signal_start_pos(signal)
+    except CannotTrim:
+        print('SKIPPING: cannot trim read')
+        return None
+    print('  trim amount: {}'.format(start_trim_pos))
+    return normalise(signal[start_trim_pos:])
 
 
 def edlib_align(query_seq, ref_seq):
