@@ -33,6 +33,10 @@ MIN_READ_COVERAGE = 70.0
 ADAPTER_BARCODE_ACCEPTABLE_GAP = 4
 BARCODE_REFERENCE_ACCEPTABLE_GAP = 10
 
+BARCODED_SAMPLES_PER_BARCODED_READ = 2
+NON_BARCODED_SAMPLES_PER_BARCODED_READ = 1
+NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ = 2
+
 
 def prep(args):
     if pathlib.Path(args.fast5_dir).is_dir():
@@ -73,110 +77,55 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
         return
 
     basecalled_start = basecalled_seq[:500]
-    adapter_start, adapter_end = align_read_to_adapter(basecalled_start)
-    if adapter_start is None:
+    adapter_seq_start, adapter_seq_end = align_adapter_to_read_seq(basecalled_start)
+    if adapter_seq_start is None:
         return
 
     signal = trim_and_normalise(signal)
 
-    # Now we look for the adapter signal in the read signal using DTW.
-    for i in range(0, 15000, 500):
-        adapter_search_signal = signal[i:i+1500]
-        if len(adapter_search_signal) > 0:
-            adapter_distance, adapter_signal_start, adapter_signal_end, _ = \
-                semi_global_dtw_with_rescaling(adapter_search_signal,
-                                               signals.native_start_kit_adapter)
-            adapter_signal_start += i
-            adapter_signal_end += i
-            if adapter_distance <= 50.0:
-                print('  adapter DTW: {}-{} ({:.2f})'.format(adapter_signal_start,
-                                                             adapter_signal_end, adapter_distance))
-                break
-    else:
-        print('SKIPPING: adapter aligned with high DTW distance')
+    adapter_signal_start, adapter_signal_end = align_adapter_to_read_dtw(signal)
+    if adapter_signal_start is None:
         return
 
-    # Now look for a good barcode in the read sequence.
-    barcode_name, barcode_identity, barcode_start, barcode_end = \
+    barcode_name, barcode_start, barcode_end = \
         get_best_barcode(basecalled_start, sequences.native_start_barcodes)
-    print('  best barcode: #{}, {}-{} ({:.2f}%)'.format(barcode_name, barcode_start, barcode_end,
-                                                        barcode_identity))
 
-    if barcode_name == 'none' or barcode_name == 'too close':
+    if barcode_name == 'too close':
+        return
 
-        # If there isn't a barcode and the reference sequence follows the ligation adapter, then
-        # this is a genuine no-barcode read.
-        if abs(adapter_end - ref_start) <= ADAPTER_BARCODE_ACCEPTABLE_GAP:
-            print('GOOD NO-BARCODE TRAINING READ')
-            print('  base coords: adapter: {}-{},'
-                  ' ref: {}-{}'.format(adapter_start, adapter_end, ref_start, ref_end))
-            print('  signal coords: adapter: {}-{}'.format(adapter_signal_end, adapter_signal_end))
-            training_sample = get_training_samples_from_signal(signal, adapter_signal_end - 10,
-                                                              adapter_signal_end + 10, signal_size)
-            # TODO: print sample
-            return
-
-        # But if there isn't a barcode and the reference doesn't follow the adapter, then we don't
-        # use it.
+    elif barcode_name == 'none':
+        if does_ref_follow_adapter(adapter_seq_end, ref_start):
+            contains_barcode = False
         else:
             print('SKIPPING: no barcode found')
             return
 
-    # See if the arrangement of elements in the basecalled read looks too weird.
-    elif abs(adapter_end - barcode_start) > ADAPTER_BARCODE_ACCEPTABLE_GAP:
-        print('SKIPPING: adapter and barcode oddly spaced')
+    else:  # barcode_name is 01, 02, 03, etc.
+        contains_barcode = True
+
+    if basecalled_elements_oddly_spaced(adapter_seq_end, barcode_start, barcode_end, ref_start):
         return
 
-    # See if the arrangement of elements in the basecalled read looks too weird.
-    elif abs(barcode_end - ref_start) > BARCODE_REFERENCE_ACCEPTABLE_GAP:
-        print('SKIPPING: barcode and reference oddly spaced')
-        return
-
-    # If the arrangement is good, then we check for the barcode in the signal with DTW.
     barcode_search_signal_start = adapter_signal_end - 100
-    barcode_search_signal_end = adapter_signal_end + 1000
-    barcode_search_signal = signal[barcode_search_signal_start:barcode_search_signal_end]
-
-    barcode_distance, barcode_signal_start, barcode_signal_end, _ = \
-        semi_global_dtw_with_rescaling(barcode_search_signal,
-                                       signals.native_start_barcodes[barcode_name])
-    print('  barcode{} DTW: {}-{} ({:.2f})'.format(barcode_name, barcode_signal_start,
-                                                   barcode_signal_end, barcode_distance))
-    if barcode_distance > 50.0:
-        print('SKIPPING: barcode aligned with high DTW distance')
-        return
-    barcode_signal_start += barcode_search_signal_start
-    barcode_signal_end += barcode_search_signal_start
-
-
-
-    # dtw_barcode_name, barcode_signal_start, barcode_signal_end = \
-    #     get_best_barcode_dtw(barcode_search_signal, signals.native_start_barcodes,
-    #                          adapter_signal_end)
-
-    # # If the sequence-based and DTW-based barcodes disagree, then we won't use this read.
-    # if dtw_barcode_name != barcode_name:
-    #     print('SKIPPING: seq barcode and DTW barcode disagree')
-    #     return
-
-    # See if the arrangement of elements in the read signal looks too weird.
-    adapter_barcode_gap = barcode_signal_start - adapter_signal_end
-    print('  adapter-barcode signal gap: {}'.format(adapter_barcode_gap))
-    print('  barcode signal size: {}'.format(barcode_signal_end - barcode_signal_start))
-    if adapter_barcode_gap < 0 or adapter_barcode_gap > 300:
-        print('SKIPPING: read signal elements oddly arranged')
+    barcode_search_signal = signal[barcode_search_signal_start:adapter_signal_end + 1000]
+    barcode_signal_start, barcode_signal_end = \
+        align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start, barcode_name)
+    if barcode_signal_start is None:
         return
 
-    print('GOOD BARCODE {} TRAINING READ'.format(barcode_name))
-    print('  base coords: adapter: {}-{}, barcode{}: {}-{} ({:.1f}%), '
-          'ref: {}-{}'.format(adapter_start, adapter_end, barcode_name,
-                              barcode_start, barcode_end, barcode_identity, ref_start, ref_end))
-    print('  signal coords: adapter: {}-{}, '
-          'barcode: {}-{}'.format(adapter_signal_end, adapter_signal_end,
-                                  barcode_signal_start, barcode_signal_end))
-    training_sample = get_training_samples_from_signal(signal, barcode_signal_start,
-                                                       barcode_signal_end, signal_size)
-    # TODO: print sample
+    if signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start, barcode_signal_end):
+        return
+
+    if contains_barcode:
+        make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
+                                       barcode_start, barcode_end, ref_start, ref_end,
+                                       adapter_signal_start, adapter_signal_end,
+                                       barcode_signal_start, barcode_signal_end,
+                                       signal, signal_size)
+    else:
+        make_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_start,
+                                           ref_end, adapter_signal_start, adapter_signal_end,
+                                           signal, signal_size)
 
 
 def prep_native_read_end():
@@ -197,7 +146,7 @@ def align_read_to_reference(basecalled_seq, mappy_aligner):
         return ref_start, ref_end
 
 
-def align_read_to_adapter(basecalled_start):
+def align_adapter_to_read_seq(basecalled_start):
     adapter_identity, adapter_start, adapter_end = edlib_align(sequences.native_start_kit_adapter,
                                                                basecalled_start)
     print('  adapter seq: {}-{} ({:.1f}%)'.format(adapter_start, adapter_end, adapter_identity))
@@ -216,6 +165,24 @@ def trim_and_normalise(signal):
         return None
     print('  trim amount: {}'.format(start_trim_pos))
     return normalise(signal[start_trim_pos:])
+
+
+def align_adapter_to_read_dtw(signal):
+    for i in range(0, 15000, 500):
+        adapter_search_signal = signal[i:i+1500]
+        if len(adapter_search_signal) > 0:
+            adapter_distance, adapter_signal_start, adapter_signal_end, _ = \
+                semi_global_dtw_with_rescaling(adapter_search_signal,
+                                               signals.native_start_kit_adapter)
+            adapter_signal_start += i
+            adapter_signal_end += i
+            if adapter_distance <= 50.0:
+                print('  adapter DTW: {}-{} ({:.2f})'.format(adapter_signal_start,
+                                                             adapter_signal_end, adapter_distance))
+                return adapter_signal_start, adapter_signal_end
+    else:
+        print('SKIPPING: adapter aligned with high DTW distance')
+        return None, None
 
 
 def edlib_align(query_seq, ref_seq):
@@ -265,33 +232,94 @@ def get_best_barcode(read_seq, barcode_seqs):
     all_identities = sorted(all_identities)
     best_second_best_diff = all_identities[-1] - all_identities[-2]
     if best_barcode_identity < MIN_BARCODE_IDENTITY:
-        return 'none', best_barcode_identity, best_start, best_end
+        return 'none', best_start, best_end
     if best_second_best_diff < MIN_BEST_SECOND_BEST_DIFF:
-        return 'too close', best_barcode_identity, best_start, best_end
+        print('SKIPPING: no barcode found')
+        return 'too close', best_start, best_end
     else:
-        return best_barcode_name, best_barcode_identity, best_start, best_end
+        print('  best barcode: #{}, {}-{} ({:.2f}%)'.format(best_barcode_name, best_start,
+                                                            best_end, best_barcode_identity))
+        return best_barcode_name, best_start, best_end
 
 
-def dtw_align(ref_signal, query_signal):
+def does_ref_follow_adapter(adapter_seq_end, ref_start):
+    if abs(adapter_seq_end - ref_start) <= ADAPTER_BARCODE_ACCEPTABLE_GAP:
+        return True
+    else:
+        return False
 
-    distance, signal_start, signal_end = 0, 0, 0  # TEMP
 
-    return distance, signal_start, signal_end
+def basecalled_elements_oddly_spaced(adapter_seq_end, barcode_start, barcode_end, ref_start):
+    # See if the arrangement of elements in the basecalled read looks too weird.
+    if abs(adapter_seq_end - barcode_start) > ADAPTER_BARCODE_ACCEPTABLE_GAP:
+        print('SKIPPING: adapter and barcode oddly spaced')
+        return True
+
+    # See if the arrangement of elements in the basecalled read looks too weird.
+    if abs(barcode_end - ref_start) > BARCODE_REFERENCE_ACCEPTABLE_GAP:
+        print('SKIPPING: barcode and reference oddly spaced')
+        return True
+
+    return False
 
 
-def get_best_barcode_dtw(read_signal, barcode_signals, start_trim_pos):
-    best_barcode_name, best_barcode_distance = None, float('inf')
-    best_start, best_end = 0, 0
-    for barcode_name, barcode_signal in barcode_signals.items():
-        distance, start, end, _ = semi_global_dtw_with_rescaling(read_signal, barcode_signal)
-        start += start_trim_pos
-        end += start_trim_pos
-        print('  barcode{} DTW: {}-{} ({:.2f})'.format(barcode_name, start, end, distance))
-        if distance < best_barcode_distance:
-            best_barcode_distance = distance
-            best_barcode_name = barcode_name
-            best_start, best_end = start, end
-    return best_barcode_name, best_start, best_end
+def align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start, barcode_name):
+    barcode_distance, barcode_signal_start, barcode_signal_end, _ = \
+        semi_global_dtw_with_rescaling(barcode_search_signal,
+                                       signals.native_start_barcodes[barcode_name])
+    print('  barcode{} DTW: {}-{} ({:.2f})'.format(barcode_name, barcode_signal_start,
+                                                   barcode_signal_end, barcode_distance))
+    if barcode_distance > 50.0:
+        print('SKIPPING: barcode aligned with high DTW distance')
+        return None, None
+    else:
+        barcode_signal_start += barcode_search_signal_start
+        barcode_signal_end += barcode_search_signal_start
+        return barcode_signal_start, barcode_signal_end
+
+
+def signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start, barcode_signal_end):
+    adapter_barcode_gap = barcode_signal_start - adapter_signal_end
+    print('  adapter-barcode signal gap: {}'.format(adapter_barcode_gap))
+    print('  barcode signal size: {}'.format(barcode_signal_end - barcode_signal_start))
+    if adapter_barcode_gap < 0 or adapter_barcode_gap > 300:
+        print('SKIPPING: read signal elements oddly arranged')
+        return True
+    else:
+        return False
+
+
+def make_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_start, ref_end,
+                                       adapter_signal_start, adapter_signal_end, signal,
+                                       signal_size):
+    print('GOOD NO-BARCODE TRAINING READ')
+    print('  base coords: adapter: {}-{},'
+          ' ref: {}-{}'.format(adapter_seq_start, adapter_seq_end, ref_start, ref_end))
+    print('  signal coords: adapter: {}-{}'.format(adapter_signal_start, adapter_signal_end))
+
+    for _ in range(NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ):
+        training_sample = get_training_samples_from_signal(signal, adapter_signal_end - 10,
+                                                           adapter_signal_end + 10, signal_size)
+        # TODO: print sample
+
+
+def make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
+                                   barcode_start, barcode_end, ref_start, ref_end,
+                                   adapter_signal_start, adapter_signal_end,
+                                   barcode_signal_start, barcode_signal_end,
+                                   signal, signal_size):
+    print('GOOD BARCODE {} TRAINING READ'.format(barcode_name))
+    print('  base coords: adapter: {}-{}, barcode{}: {}-{}, '
+          'ref: {}-{}'.format(adapter_seq_start, adapter_seq_end, barcode_name,
+                              barcode_start, barcode_end, ref_start, ref_end))
+    print('  signal coords: adapter: {}-{}, '
+          'barcode: {}-{}'.format(adapter_signal_start, adapter_signal_end,
+                                  barcode_signal_start, barcode_signal_end))
+
+    for _ in range(BARCODED_SAMPLES_PER_BARCODED_READ):
+        training_sample = get_training_samples_from_signal(signal, barcode_signal_start,
+                                                           barcode_signal_end, signal_size)
+        # TODO: print sample
 
 
 def get_training_samples_from_signal(signal, include_start, include_end, signal_size):
