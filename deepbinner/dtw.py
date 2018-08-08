@@ -89,15 +89,20 @@ def semi_global_dtw_with_rescaling(ref, query):
     Based on this: https://arxiv.org/abs/1705.01620
     """
     query = np.array(query)
-    query = 0.9 * query  # empirical, seems to work
 
     distance, start, end, pairs = 0, 0, 0, []
     overall_slope = 1.0
 
-    for _ in range(2):
+    iterations = 2
+
+    for i in range(iterations):
         distance, start, end, alignment = semi_global_dtw(ref, query)
 
         pairs = [(ref[i], query[j]) for i, j in alignment]
+
+        # Don't bother with the linear regression on the last iteration.
+        if i == iterations - 1:
+            break
 
         # Do a linear regression on the points between the reference and query.
         x = [p[1] for p in pairs]
