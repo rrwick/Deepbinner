@@ -188,14 +188,11 @@ def prep_subparser(subparsers):
                                help='The directory containing the fast5 files (will be searched '
                                     'recursively, so can contain subdirectories)')
     required_args.add_argument('--kit', type=str, required=True,
-                               choices=['EXP-NBD103', 'SQK-RBK004'],
+                               choices=['EXP-NBD103_start', 'EXP-NBD103_end', 'SQK-RBK004_start'],
                                help='Which kit was used to sequence the data')
     required_args.add_argument('--flowcell', type=str, required=True,
                                choices=['FLO-MIN106', 'FLO-MIN107'],
                                help='Which flowcell was used to sequence the data')
-    required_args.add_argument('--start_end', type=str, required=True,
-                               choices=['start', 'end'],
-                               help='Whether to prep data for read starts or read ends')
 
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--ref_fasta', type=str,
@@ -283,7 +280,8 @@ def check_classify_and_realtime_arguments(args):
 
 
 def check_prep_arguments(args):
-    if args.kit == 'EXP-NBD103' and args.ref_fasta is None:
+    if args.kit == 'EXP-NBD103_start' or args.kit == 'EXP-NBD103_end':
+        if args.ref_fasta is None:
             sys.exit('Error: --ref_fasta is required for the EXP-NBD103 kit')
 
 

@@ -27,7 +27,7 @@ native_start_barcodes = {'01': 'AAGGTTAACACAAAGACACCGACAACTTTCTTCAGCACCT',
                          '12': 'AAGGTTAATCCGATTCTGCTTCTTTCTACCTGCAGCACCT'}
 
 
-native_end_kit_adapter = 'AGCAATACGTAACTGAACGAAGT'
+native_end_kit_adapter = 'AGCAATACGTAACTGAACG'  # truncated a bit off the end
 native_end_barcodes = {'01': 'AGGTGCTGAAGAAAGTTGTCGGTGTCTTTGTGTTAACCTT',
                        '02': 'AGGTGCTGTCGATTCCGTTTGTAGTCGTCTGTTTAACCTT',
                        '03': 'AGGTGCTGGAGTCTTGTGTCCCAGTTACCAGGTTAACCTT',

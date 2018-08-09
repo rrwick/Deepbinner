@@ -31,6 +31,7 @@ MIN_BARCODE_IDENTITY = 70.0
 MIN_BEST_SECOND_BEST_DIFF = 7.5
 MIN_REFERENCE_IDENTITY = 70.0
 MIN_READ_COVERAGE = 70.0
+MIN_BASECALLED_LENGTH = 500
 ADAPTER_BARCODE_ACCEPTABLE_GAP = 4
 ADAPTER_REFERENCE_ACCEPTABLE_GAP = 4
 BARCODE_REFERENCE_ACCEPTABLE_GAP = 10
@@ -49,7 +50,7 @@ def prep(args):
     read_seqs = load_fastq(args.fastq)
 
     # For the ligation kit we need to align to reference (but not for the rapid kit).
-    if args.kit == 'EXP-NBD103':
+    if args.kit == 'EXP-NBD103_start' or args.kit == 'EXP-NBD103_end':
         mappy_aligner = mp.Aligner(args.ref_fasta)
     else:
         mappy_aligner = None
@@ -63,39 +64,32 @@ def prep(args):
         print(fast5_file, file=sys.stderr)
         print('  read ID: {}'.format(read_id), file=sys.stderr)
 
-        if args.kit == 'EXP-NBD103' and args.start_end == 'start':
+        if args.kit == 'EXP-NBD103_start':
             prep_native_read_start(signal, read_seqs[read_id], mappy_aligner, args.signal_size)
 
-        if args.kit == 'EXP-NBD103' and args.start_end == 'end':
-            prep_native_read_end()
+        if args.kit == 'EXP-NBD103_end':
+            prep_native_read_end(signal, read_seqs[read_id], mappy_aligner, args.signal_size)
 
-        elif args.kit == 'SQK-RBK004' and args.start_end == 'start':
+        elif args.kit == 'SQK-RBK004_start':
             prep_rapid_read_start()
 
 
 def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
     print('  sequence-based alignment', file=sys.stderr)
+    print('    basecalled length: {}'.format(len(basecalled_seq)), file=sys.stderr)
 
     ref_start, ref_end = align_read_to_reference(basecalled_seq, mappy_aligner)
     if ref_start is None:
         return
 
     basecalled_start = basecalled_seq[:500]
-    adapter_seq_start, adapter_seq_end = align_adapter_to_read_seq(basecalled_start)
+    adapter_seq_start, adapter_seq_end = \
+        align_adapter_to_read_seq(basecalled_start, sequences.native_start_kit_adapter)
     if adapter_seq_start is None:
         return
 
     barcode_name, barcode_start, barcode_end = \
         get_best_barcode(basecalled_start, sequences.native_start_barcodes)
-
-    print('  signal-based DTW alignment', file=sys.stderr)
-
-    signal = trim_signal(signal)
-    normalised_signal = normalise(signal)
-
-    adapter_signal_start, adapter_signal_end = align_adapter_to_read_dtw(normalised_signal)
-    if adapter_signal_start is None:
-        return
 
     if barcode_name == 'too close':
         return
@@ -109,8 +103,18 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
     else:  # barcode_name is 01, 02, 03, etc.
         contains_barcode = True
 
+    print('  signal-based DTW alignment', file=sys.stderr)
+
+    signal = trim_signal(signal)
+    normalised_signal = normalise(signal)
+
+    adapter_signal_start, adapter_signal_end = align_adapter_to_read_start_dtw(normalised_signal)
+    if adapter_signal_start is None:
+        return
+
     if contains_barcode:
-        if basecalled_elements_oddly_spaced(adapter_seq_end, barcode_start, barcode_end, ref_start):
+        if basecalled_elements_oddly_spaced_native_start(adapter_seq_end, barcode_start,
+                                                         barcode_end, ref_start):
             return
 
         barcode_search_signal_start = adapter_signal_end - 100
@@ -118,7 +122,7 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
             normalised_signal[barcode_search_signal_start:adapter_signal_end + 1000]
         barcode_signal_start, barcode_signal_end = \
             align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start,
-                                      barcode_name)
+                                      barcode_name, signals.native_start_barcodes)
         if barcode_signal_start is None:
             return
 
@@ -138,8 +142,79 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
                                            signal, signal_size)
 
 
-def prep_native_read_end():
-    pass
+def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size):
+    print('  sequence-based alignment', file=sys.stderr)
+    print('    basecalled length: {}'.format(len(basecalled_seq)), file=sys.stderr)
+
+    ref_start, ref_end = align_read_to_reference(basecalled_seq, mappy_aligner)
+    if ref_start is None:
+        return
+
+    basecalled_end = basecalled_seq[-250:]
+    offset = len(basecalled_seq) - len(basecalled_end)
+    adapter_seq_start, adapter_seq_end = \
+        align_adapter_to_read_seq(basecalled_end, sequences.native_end_kit_adapter, offset)
+    if adapter_seq_start is None:
+        return
+
+    barcode_name, barcode_start, barcode_end = \
+        get_best_barcode(basecalled_end, sequences.native_end_barcodes, offset)
+
+    if barcode_name == 'too close':
+        return
+
+    elif barcode_name == 'none':
+        if does_ref_precede_adapter(ref_end, adapter_seq_start):
+            contains_barcode = False
+        else:
+            return
+
+    else:  # barcode_name is 01, 02, 03, etc.
+        contains_barcode = True
+
+    print('  signal-based DTW alignment', file=sys.stderr)
+
+    signal = trim_signal(signal)
+    normalised_signal = normalise(signal)
+
+    adapter_signal_start, adapter_signal_end = align_adapter_to_read_end_dtw(normalised_signal)
+    if adapter_signal_start is None:
+        return
+
+    if contains_barcode:
+        if basecalled_elements_oddly_spaced_native_end(ref_end, barcode_start,
+                                                       barcode_end, adapter_seq_start):
+            return
+
+        barcode_search_signal_start = adapter_signal_start - 1000
+        barcode_search_signal = normalised_signal[barcode_search_signal_start:]
+        barcode_signal_start, barcode_signal_end = \
+            align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start,
+                                      barcode_name, signals.native_end_barcodes)
+
+        # TODO
+        # TODO
+        # TODO
+
+    else:
+        pass  # TODO
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def prep_rapid_read_start():
@@ -147,6 +222,9 @@ def prep_rapid_read_start():
 
 
 def align_read_to_reference(basecalled_seq, mappy_aligner):
+    if len(basecalled_seq) < MIN_BASECALLED_LENGTH:
+        print('  verdict: skipping due to short basecalled length', file=sys.stderr)
+        return None, None
     ref_id, read_cov, ref_start, ref_end = minimap_align(basecalled_seq, mappy_aligner)
     if ref_id == 0.0:
         print('  verdict: skipping due to no alignment to reference', file=sys.stderr)
@@ -176,9 +254,10 @@ def minimap_align(query_seq, aligner):
     return identity, read_cov, read_start, read_end
 
 
-def align_adapter_to_read_seq(basecalled_start):
-    adapter_identity, adapter_start, adapter_end = edlib_align(sequences.native_start_kit_adapter,
-                                                               basecalled_start)
+def align_adapter_to_read_seq(basecalled_start, adapter, offset=0):
+    adapter_identity, adapter_start, adapter_end = edlib_align(adapter, basecalled_start)
+    adapter_start += offset
+    adapter_end += offset
     print('    adapter seq: {}-{} ({:.1f}%)'.format(adapter_start, adapter_end, adapter_identity),
           file=sys.stderr)
     if adapter_identity < MIN_ADAPTER_IDENTITY:
@@ -199,18 +278,42 @@ def trim_signal(signal):
     return signal[start_trim_pos:]
 
 
-def align_adapter_to_read_dtw(signal):
-    for i in range(0, 15000, 500):
-        adapter_search_signal = signal[i:i+1500]
+def align_adapter_to_read_start_dtw(signal):
+    for range_start in range(0, 15000, 500):
+        range_end = range_start + 1500
+        adapter_search_signal = signal[range_start:range_end]
         if len(adapter_search_signal) > 0:
             adapter_distance, adapter_signal_start, adapter_signal_end, _ = \
                 semi_global_dtw_with_rescaling(adapter_search_signal,
                                                signals.native_start_kit_adapter)
-            adapter_signal_start += i
-            adapter_signal_end += i
+            adapter_signal_start += range_start
+            adapter_signal_end += range_start
             if adapter_distance <= 50.0:
-                print('    adapter DTW: {}-{} ({:.2f})'.format(adapter_signal_start,
-                                                             adapter_signal_end, adapter_distance),
+                print('    adapter DTW: {}-{} '
+                      '({:.2f})'.format(adapter_signal_start, adapter_signal_end, adapter_distance),
+                      file=sys.stderr)
+                return adapter_signal_start, adapter_signal_end
+    else:
+        print('  verdict: skipping due to high adapter DTW distance', file=sys.stderr)
+        return None, None
+
+
+def align_adapter_to_read_end_dtw(signal):
+    for i in range(0, 15000, 500):
+        range_end = len(signal) - i
+        range_start = range_end - 1500
+        if range_start < 0:
+            continue
+        adapter_search_signal = signal[range_start:range_end]
+        if len(adapter_search_signal) > 0:
+            adapter_distance, adapter_signal_start, adapter_signal_end, _ = \
+                semi_global_dtw_with_rescaling(adapter_search_signal,
+                                               signals.native_end_kit_adapter)
+            adapter_signal_start += range_start
+            adapter_signal_end += range_start
+            if adapter_distance <= 50.0:
+                print('    adapter DTW: {}-{} '
+                      '({:.2f})'.format(adapter_signal_start, adapter_signal_end, adapter_distance),
                       file=sys.stderr)
                 return adapter_signal_start, adapter_signal_end
     else:
@@ -239,7 +342,7 @@ def identity_from_edlib_cigar(cigar):
         return 0.0
 
 
-def get_best_barcode(read_seq, barcode_seqs):
+def get_best_barcode(read_seq, barcode_seqs, offset=0):
     best_barcode_name, best_barcode_identity = None, 0.0
     best_start, best_end = 0, 0
     all_identities = []
@@ -251,6 +354,8 @@ def get_best_barcode(read_seq, barcode_seqs):
         all_identities.append(barcode_identity)
     all_identities = sorted(all_identities)
     best_second_best_diff = all_identities[-1] - all_identities[-2]
+    best_start += offset
+    best_end += offset
     if best_barcode_identity < MIN_BARCODE_IDENTITY:
         return 'none', best_start, best_end
     if best_second_best_diff < MIN_BEST_SECOND_BEST_DIFF:
@@ -271,24 +376,42 @@ def does_ref_follow_adapter(adapter_seq_end, ref_start):
         return False
 
 
-def basecalled_elements_oddly_spaced(adapter_seq_end, barcode_start, barcode_end, ref_start):
-    # See if the arrangement of elements in the basecalled read looks too weird.
+def does_ref_precede_adapter(ref_end, adapter_seq_start):
+    if abs(ref_end - adapter_seq_start) <= ADAPTER_REFERENCE_ACCEPTABLE_GAP:
+        return True
+    else:
+        print('  verdict: skipping due to odd reference-adapter arrangement', file=sys.stderr)
+        return False
+
+
+def basecalled_elements_oddly_spaced_native_start(adapter_seq_end, barcode_start, barcode_end,
+                                                  ref_start):
     if abs(adapter_seq_end - barcode_start) > ADAPTER_BARCODE_ACCEPTABLE_GAP:
         print('  verdict: skipping due to odd adapter-barcode arrangement', file=sys.stderr)
         return True
-
-    # See if the arrangement of elements in the basecalled read looks too weird.
     if abs(barcode_end - ref_start) > BARCODE_REFERENCE_ACCEPTABLE_GAP:
         print('  verdict: skipping due to odd barcode-reference arrangement', file=sys.stderr)
         return True
-
     return False
 
 
-def align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start, barcode_name):
+def basecalled_elements_oddly_spaced_native_end(ref_end, barcode_start, barcode_end,
+                                                adapter_seq_start):
+    if abs(ref_end - barcode_start) > BARCODE_REFERENCE_ACCEPTABLE_GAP:
+        print('  verdict: skipping due to odd reference-barcode arrangement', file=sys.stderr)
+        return True
+    if abs(barcode_end - adapter_seq_start) > ADAPTER_BARCODE_ACCEPTABLE_GAP:
+        print('  verdict: skipping due to odd barcode-adapter arrangement', file=sys.stderr)
+        return True
+    return False
+
+
+def align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start, barcode_name,
+                              barcode_signals):
+    if barcode_search_signal_start < 0:
+        return None, None
     barcode_distance, barcode_signal_start, barcode_signal_end, _ = \
-        semi_global_dtw_with_rescaling(barcode_search_signal,
-                                       signals.native_start_barcodes[barcode_name])
+        semi_global_dtw_with_rescaling(barcode_search_signal, barcode_signals[barcode_name])
     barcode_signal_start += barcode_search_signal_start
     barcode_signal_end += barcode_search_signal_start
     print('    barcode{} DTW: {}-{} ({:.2f})'.format(barcode_name, barcode_signal_start,
