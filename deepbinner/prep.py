@@ -37,6 +37,7 @@ ADAPTER_REFERENCE_ACCEPTABLE_GAP = 4
 BARCODE_REFERENCE_ACCEPTABLE_GAP = 10
 
 BARCODED_SAMPLES_PER_BARCODED_READ = 2
+MIDDLE_SAMPLES_PER_BARCODED_READ = 1
 NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ = 2
 NON_BARCODED_SAMPLE_FROM_BEFORE_START_BARCODE = True
 NON_BARCODED_SAMPLE_FROM_AFTER_END_BARCODE = True
@@ -519,6 +520,13 @@ def make_native_start_barcoded_training_samples(barcode_name, adapter_seq_start,
             print('0\t', end='')
             print(','.join(str(s) for s in training_sample))
 
+    for _ in range(MIDDLE_SAMPLES_PER_BARCODED_READ):
+        training_sample = \
+            get_training_sample_from_middle_of_signal(signal, signal_size)
+        if training_sample is not None:
+            print('0\t', end='')
+            print(','.join(str(s) for s in training_sample))
+
 
 def make_native_end_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
                                               barcode_start, barcode_end, ref_start, ref_end,
@@ -549,6 +557,13 @@ def make_native_end_barcoded_training_samples(barcode_name, adapter_seq_start, a
             print('0\t', end='')
             print(','.join(str(s) for s in training_sample))
 
+    for _ in range(MIDDLE_SAMPLES_PER_BARCODED_READ):
+        training_sample = \
+            get_training_sample_from_middle_of_signal(signal, signal_size)
+        if training_sample is not None:
+            print('0\t', end='')
+            print(','.join(str(s) for s in training_sample))
+
 
 def get_training_sample_around_signal(signal, include_start, include_end, signal_size,
                                       barcode_name):
@@ -567,6 +582,20 @@ def get_training_sample_around_signal(signal, include_start, include_end, signal
     else:
         print('    barcode {} sample taken from trimmed signal: '
               '{}-{}'.format(barcode_name, training_start, training_end), file=sys.stderr)
+    return signal[training_start:training_end]
+
+
+def get_training_sample_from_middle_of_signal(signal, signal_size):
+    """
+    This function takes in a large signal and returns a training-sized chunk from the middle.
+    """
+    try:
+        training_start = random.randint(25000, len(signal) - 25000 - signal_size)
+    except ValueError:
+        return None
+    training_end = training_start + signal_size
+    print('    no-barcode sample taken from middle of signal: '
+          '{}-{}'.format(training_start, training_end), file=sys.stderr)
     return signal[training_start:training_end]
 
 
