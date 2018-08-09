@@ -38,7 +38,8 @@ BARCODE_REFERENCE_ACCEPTABLE_GAP = 10
 
 BARCODED_SAMPLES_PER_BARCODED_READ = 2
 NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ = 2
-NON_BARCODED_SAMPLE_FROM_BEFORE_BARCODE = True
+NON_BARCODED_SAMPLE_FROM_BEFORE_START_BARCODE = True
+NON_BARCODED_SAMPLE_FROM_AFTER_END_BARCODE = True
 
 
 def prep(args):
@@ -126,20 +127,19 @@ def prep_native_read_start(signal, basecalled_seq, mappy_aligner, signal_size):
         if barcode_signal_start is None:
             return
 
-        if signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start,
-                                        barcode_signal_end):
+        if native_start_signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start,
+                                                     barcode_signal_end, signal_size):
             return
 
-        make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
-                                       barcode_start, barcode_end, ref_start, ref_end,
-                                       adapter_signal_start, adapter_signal_end,
-                                       barcode_signal_start, barcode_signal_end,
-                                       signal, signal_size)
-
+        make_native_start_barcoded_training_samples(barcode_name, adapter_seq_start,
+                                                    adapter_seq_end, barcode_start, barcode_end,
+                                                    ref_start, ref_end, adapter_signal_start,
+                                                    adapter_signal_end, barcode_signal_start,
+                                                    barcode_signal_end, signal, signal_size)
     else:
-        make_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_start,
-                                           ref_end, adapter_signal_start, adapter_signal_end,
-                                           signal, signal_size)
+        make_native_start_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end,
+                                                        ref_start, ref_end, adapter_signal_start,
+                                                        adapter_signal_end, signal, signal_size)
 
 
 def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size):
@@ -191,30 +191,22 @@ def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size):
         barcode_signal_start, barcode_signal_end = \
             align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start,
                                       barcode_name, signals.native_end_barcodes)
+        if barcode_signal_start is None:
+            return
 
-        # TODO
-        # TODO
-        # TODO
+        if native_end_signal_elements_oddly_spaced(barcode_signal_start, barcode_signal_end,
+                                                   adapter_signal_start, signal_size):
+            return
 
+        make_native_end_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
+                                                  barcode_start, barcode_end, ref_start, ref_end,
+                                                  adapter_signal_start, adapter_signal_end,
+                                                  barcode_signal_start, barcode_signal_end, signal,
+                                                  signal_size)
     else:
-        pass  # TODO
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        make_native_end_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end,
+                                                      ref_start, ref_end, adapter_signal_start,
+                                                      adapter_signal_end, signal, signal_size)
 
 
 def prep_rapid_read_start():
@@ -424,11 +416,16 @@ def align_barcode_to_read_dtw(barcode_search_signal, barcode_search_signal_start
         return barcode_signal_start, barcode_signal_end
 
 
-def signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start, barcode_signal_end):
+def native_start_signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start,
+                                              barcode_signal_end, signal_size):
+    if barcode_signal_end - barcode_signal_start >= signal_size:
+        print('  verdict: skipping due to too-long barcode signal', file=sys.stderr)
+        return True
     adapter_barcode_gap = barcode_signal_start - adapter_signal_end
     print('    adapter-barcode signal gap: {}'.format(adapter_barcode_gap), file=sys.stderr)
     print('    barcode signal size: {}'.format(barcode_signal_end - barcode_signal_start),
           file=sys.stderr)
+    # TODO: tune these based on the empirical distribution (see what looks normal)
     if adapter_barcode_gap < 0 or adapter_barcode_gap > 300:
         print('  verdict: skipping due to odd adapter-barcode arrangement', file=sys.stderr)
         return True
@@ -436,9 +433,26 @@ def signal_elements_oddly_spaced(adapter_signal_end, barcode_signal_start, barco
         return False
 
 
-def make_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_start, ref_end,
-                                       adapter_signal_start, adapter_signal_end, signal,
-                                       signal_size):
+def native_end_signal_elements_oddly_spaced(barcode_signal_start, barcode_signal_end,
+                                            adapter_signal_start, signal_size):
+    if barcode_signal_end - barcode_signal_start >= signal_size:
+        print('  verdict: skipping due to too-long barcode signal', file=sys.stderr)
+        return True
+    barcode_adapter_gap = adapter_signal_start - barcode_signal_end
+    print('    barcode-adapter signal gap: {}'.format(barcode_adapter_gap), file=sys.stderr)
+    print('    barcode signal size: {}'.format(barcode_signal_end - barcode_signal_start),
+          file=sys.stderr)
+    # TODO: tune these based on the empirical distribution (see what looks normal)
+    if barcode_adapter_gap < -150 or barcode_adapter_gap > 100:
+        print('  verdict: skipping due to odd adapter-barcode arrangement', file=sys.stderr)
+        return True
+    else:
+        return False
+
+
+def make_native_start_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_start,
+                                                    ref_end, adapter_signal_start,
+                                                    adapter_signal_end, signal, signal_size):
     print('  verdict: good no-barcode training read', file=sys.stderr)
     print('    base coords: adapter: {}-{},'
           ' ref: {}-{}'.format(adapter_seq_start, adapter_seq_end, ref_start, ref_end),
@@ -456,11 +470,31 @@ def make_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_s
             print(','.join(str(s) for s in training_sample))
 
 
-def make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
-                                   barcode_start, barcode_end, ref_start, ref_end,
-                                   adapter_signal_start, adapter_signal_end,
-                                   barcode_signal_start, barcode_signal_end,
-                                   signal, signal_size):
+def make_native_end_non_barcoded_training_samples(adapter_seq_start, adapter_seq_end, ref_start,
+                                                  ref_end, adapter_signal_start,
+                                                  adapter_signal_end, signal, signal_size):
+    print('  verdict: good no-barcode training read', file=sys.stderr)
+    print('    base coords: ref: {}-{},'
+          ' adapter: {}-{}'.format(ref_start, ref_end, adapter_seq_start, adapter_seq_end),
+          file=sys.stderr)
+    print('    signal coords: adapter: {}-{}'.format(adapter_signal_start, adapter_signal_end),
+          file=sys.stderr)
+    print('  making training samples', file=sys.stderr)
+
+    for _ in range(NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ):
+        training_sample = get_training_sample_around_signal(signal, adapter_signal_start - 10,
+                                                            adapter_signal_start + 10, signal_size,
+                                                            None)
+        if training_sample is not None:
+            print('0\t', end='')
+            print(','.join(str(s) for s in training_sample))
+
+
+def make_native_start_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
+                                                barcode_start, barcode_end, ref_start, ref_end,
+                                                adapter_signal_start, adapter_signal_end,
+                                                barcode_signal_start, barcode_signal_end,
+                                                signal, signal_size):
     print('  verdict: good training read for barcode {}'.format(barcode_name), file=sys.stderr)
     print('    base coords: adapter: {}-{}, barcode{}: {}-{}, '
           'ref: {}-{}'.format(adapter_seq_start, adapter_seq_end, barcode_name,
@@ -478,9 +512,39 @@ def make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_
             print('{}\t'.format(barcode_name), end='')
             print(','.join(str(s) for s in training_sample))
 
-    if NON_BARCODED_SAMPLE_FROM_BEFORE_BARCODE:
-        training_sample = get_training_sample_before_signal(signal, adapter_signal_end - 10,
+    if NON_BARCODED_SAMPLE_FROM_BEFORE_START_BARCODE:
+        training_sample = get_training_sample_before_signal(signal, adapter_signal_end - 50,
                                                             signal_size)
+        if training_sample is not None:
+            print('0\t', end='')
+            print(','.join(str(s) for s in training_sample))
+
+
+def make_native_end_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_end,
+                                              barcode_start, barcode_end, ref_start, ref_end,
+                                              adapter_signal_start, adapter_signal_end,
+                                              barcode_signal_start, barcode_signal_end,
+                                              signal, signal_size):
+    print('  verdict: good training read for barcode {}'.format(barcode_name), file=sys.stderr)
+    print('    base coords: ref: {}-{}, barcode{}: {}-{}, '
+          'adapter: {}-{}'.format(ref_start, ref_end, barcode_name, barcode_start, barcode_end,
+                                  adapter_seq_start, adapter_seq_end), file=sys.stderr)
+    print('    signal coords: barcode: {}-{}, '
+          'adapter: {}-{}'.format(barcode_signal_start, barcode_signal_end,
+                                  adapter_signal_start, adapter_signal_end), file=sys.stderr)
+    print('  making training samples', file=sys.stderr)
+
+    for _ in range(BARCODED_SAMPLES_PER_BARCODED_READ):
+        training_sample = \
+            get_training_sample_around_signal(signal, barcode_signal_start, barcode_signal_end,
+                                              signal_size, barcode_name)
+        if training_sample is not None:
+            print('{}\t'.format(barcode_name), end='')
+            print(','.join(str(s) for s in training_sample))
+
+    if NON_BARCODED_SAMPLE_FROM_AFTER_END_BARCODE:
+        training_sample = get_training_sample_after_signal(signal, adapter_signal_end + 50,
+                                                           signal_size)
         if training_sample is not None:
             print('0\t', end='')
             print(','.join(str(s) for s in training_sample))
@@ -508,7 +572,7 @@ def get_training_sample_around_signal(signal, include_start, include_end, signal
 
 def get_training_sample_before_signal(signal, before_point, signal_size):
     """
-    This function takes in a large signal and returns a training-sized chunk which occurs just
+    This function takes in a large signal and returns a training-sized chunk which occurs
     before the given point.
     """
     try:
@@ -516,6 +580,21 @@ def get_training_sample_before_signal(signal, before_point, signal_size):
     except ValueError:
         return None
     training_end = training_start + signal_size
-    print('    no-barcode sample taken from trimmed signal: '
+    print('    no-barcode sample taken from trimmed signal start: '
+          '{}-{}'.format(training_start, training_end), file=sys.stderr)
+    return signal[training_start:training_end]
+
+
+def get_training_sample_after_signal(signal, after_point, signal_size):
+    """
+    This function takes in a large signal and returns a training-sized chunk which occurs
+    after the given point.
+    """
+    try:
+        training_end = random.randint(after_point + signal_size, len(signal))
+    except ValueError:
+        return None
+    training_start = training_end - signal_size
+    print('    no-barcode sample taken from signal end: '
           '{}-{}'.format(training_start, training_end), file=sys.stderr)
     return signal[training_start:training_end]
