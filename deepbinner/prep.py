@@ -38,6 +38,7 @@ def prep(args):
     else:
         mappy_aligner = None
 
+    read_count = 0
     for fast5_file in fast5s:
         read_id, signal = get_read_id_and_signal(fast5_file)
         if read_id not in read_seqs:
@@ -65,6 +66,13 @@ def prep(args):
 
         elif args.kit == 'SQK-RBK004_start':
             prep_rapid_read_start()
+
+        read_count += 1
+        if args.read_limit is not None:
+            if read_count >= args.read_limit:
+                break
+
+    print('', file=sys.stderr)
 
 
 def load_albacore_barcodes_from_sequencing_summary(sequence_summary_filename):

@@ -197,12 +197,14 @@ def prep_subparser(subparsers):
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--ref_fasta', type=str,
                             help='Reference FASTA file (required for EXP-NBD103 kit)')
-    group.add_argument('--signal_size', type=int, required=False, default=1024,
-                       help='Amount of signal (number of samples) that will be used in the neural '
-                            'network')
-    group.add_argument('--sequencing_summary', type=str, required=False,
-                       help='Basecalling sequencing_summary.txt file (if provided, will be used '
-                            'for barcode classification verification)')
+    other_args.add_argument('--signal_size', type=int, required=False, default=1024,
+                            help='Amount of signal (number of samples) that will be used in the '
+                                 'neural network')
+    other_args.add_argument('--sequencing_summary', type=str, required=False,
+                            help='Basecalling sequencing_summary.txt file (if provided, will be '
+                                 'used for barcode classification verification)')
+    other_args.add_argument('--read_limit', type=int, required=False,
+                            help='If provided, will limit the training to this many reads')
 
     other_args = group.add_argument_group('Other')
     other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
