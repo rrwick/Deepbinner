@@ -30,7 +30,14 @@ BARCODE_REFERENCE_ACCEPTABLE_GAP = 10
 BARCODED_SAMPLES_PER_BARCODED_READ = 2
 MIDDLE_SAMPLES_PER_BARCODED_READ = 1
 NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ = 2
-NON_BARCODED_SAMPLE_FROM_AFTER_END_BARCODE = True
+NON_BARCODED_SAMPLES_FROM_AFTER_END_BARCODE = 1
+
+# These values refer to how far apart the barcode signal and adapter signal should be. They were
+# determined empirically by looking at the distribution of this gap in lots of signals. For these
+# read-end gaps, the values are negative, meaning that the barcode signal and the adapter signal
+# are expected to overlap a bit.
+MIN_BARCODE_ADAPTER_GAP = -100
+MAX_BARCODE_ADAPTER_GAP = -20
 
 
 def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size, albacore_barcode):
@@ -152,8 +159,8 @@ def signal_elements_oddly_spaced(barcode_signal_start, barcode_signal_end, adapt
     print('    barcode-adapter signal gap: {}'.format(barcode_adapter_gap), file=sys.stderr)
     print('    barcode signal size: {}'.format(barcode_signal_end - barcode_signal_start),
           file=sys.stderr)
-    # TODO: tune these based on the empirical distribution (see what looks normal)
-    if barcode_adapter_gap < -150 or barcode_adapter_gap > 100:
+    if barcode_adapter_gap < MIN_BARCODE_ADAPTER_GAP or \
+            barcode_adapter_gap > MAX_BARCODE_ADAPTER_GAP:
         print('  verdict: skipping due to odd adapter-barcode arrangement', file=sys.stderr)
         return True
     else:
@@ -201,7 +208,7 @@ def make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_
             print('{}\t'.format(barcode_name), end='')
             print(','.join(str(s) for s in training_sample))
 
-    if NON_BARCODED_SAMPLE_FROM_AFTER_END_BARCODE:
+    for _ in range(NON_BARCODED_SAMPLES_FROM_AFTER_END_BARCODE):
         training_sample = get_training_sample_after_signal(signal, adapter_signal_end + 50,
                                                            signal_size)
         if training_sample is not None:

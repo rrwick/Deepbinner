@@ -217,7 +217,7 @@ def get_training_sample_after_signal(signal, after_point, signal_size):
 def albacore_barcode_agrees(barcode_name, albacore_barcode):
     if albacore_barcode is None:
         return True
-    if barcode_name == 'none' and albacore_barcode == 'unclassified':
+    if barcode_name == 'none' or albacore_barcode == 'unclassified':
         return True
 
     if barcode_name == albacore_barcode:
