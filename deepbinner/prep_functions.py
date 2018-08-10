@@ -212,3 +212,17 @@ def get_training_sample_after_signal(signal, after_point, signal_size):
     print('    no-barcode sample taken from signal end: '
           '{}-{}'.format(training_start, training_end), file=sys.stderr)
     return signal[training_start:training_end]
+
+
+def albacore_barcode_agrees(barcode_name, albacore_barcode):
+    if albacore_barcode is None:
+        return True
+    if barcode_name == 'none' and albacore_barcode == 'unclassified':
+        return True
+
+    if barcode_name == albacore_barcode:
+        return True
+    else:
+        print('  verdict: skipping because albacore barcode ({})'
+              ' disagrees'.format(albacore_barcode), file=sys.stderr)
+        return False

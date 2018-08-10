@@ -17,7 +17,8 @@ from .trim_signal import normalise
 from .dtw_semi_global import semi_global_dtw_with_rescaling
 from .prep_functions import align_read_to_reference, align_adapter_to_read_seq, trim_signal, \
     get_best_barcode, align_barcode_to_read_dtw, get_training_sample_around_signal, \
-    get_training_sample_from_middle_of_signal, get_training_sample_after_signal
+    get_training_sample_from_middle_of_signal, get_training_sample_after_signal, \
+    albacore_barcode_agrees
 from . import sequences
 from . import signals
 
@@ -32,7 +33,7 @@ NON_BARCODED_SAMPLES_PER_NON_BARCODED_READ = 2
 NON_BARCODED_SAMPLE_FROM_AFTER_END_BARCODE = True
 
 
-def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size):
+def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size, albacore_barcode):
     print('  sequence-based alignment', file=sys.stderr)
     print('    basecalled length: {}'.format(len(basecalled_seq)), file=sys.stderr)
 
@@ -61,6 +62,9 @@ def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size):
 
     else:  # barcode_name is 01, 02, 03, etc.
         contains_barcode = True
+
+    if not albacore_barcode_agrees(barcode_name, albacore_barcode):
+        return
 
     print('  signal-based DTW alignment', file=sys.stderr)
 
