@@ -116,20 +116,6 @@ def get_window_stdev(signal, current_pos, window_num, increment):
     return np.std(signal[window_start:window_end])
 
 
-def too_much_open_pore(signal):
-    """
-    This function returns True if too much of the signal has a low standard deviation.
-    """
-    window_size = 100
-    stdev_threshold = 30
-    fraction = 0.4
-
-    window_count = int(len(signal) / window_size)
-    window_stdevs = [get_window_stdev(signal, 0, i, window_size) for i in range(window_count)]
-    num_low_stdevs = sum(1 if x < stdev_threshold else 0 for x in window_stdevs)
-    return num_low_stdevs / window_count > fraction
-
-
 def normalise(signal):
     if len(signal) == 0:
         return signal
