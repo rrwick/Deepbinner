@@ -190,9 +190,6 @@ def prep_subparser(subparsers):
     required_args.add_argument('--kit', type=str, required=True,
                                choices=['EXP-NBD103_start', 'EXP-NBD103_end', 'SQK-RBK004_start'],
                                help='Which kit was used to sequence the data')
-    required_args.add_argument('--flowcell', type=str, required=True,
-                               choices=['FLO-MIN106', 'FLO-MIN107'],
-                               help='Which flowcell was used to sequence the data')
 
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--ref_fasta', type=str,

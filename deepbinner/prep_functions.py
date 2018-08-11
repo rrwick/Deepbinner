@@ -26,6 +26,7 @@ MIN_BEST_SECOND_BEST_DIFF = 7.5
 MIN_REFERENCE_IDENTITY = 70.0
 MIN_READ_COVERAGE = 70.0
 MIN_BASECALLED_LENGTH = 500
+MAX_TRIM_AMOUNT = 2000
 
 
 def align_read_to_reference(basecalled_seq, mappy_aligner):
@@ -82,6 +83,8 @@ def trim_signal(signal):
         print('  verdict: skipping due to failed signal trimming', file=sys.stderr)
         return None
     print('    trim amount: {}'.format(start_trim_pos), file=sys.stderr)
+    if start_trim_pos > MAX_TRIM_AMOUNT:
+        print('  verdict: skipping due to excessive trimming', file=sys.stderr)
     return signal[start_trim_pos:]
 
 

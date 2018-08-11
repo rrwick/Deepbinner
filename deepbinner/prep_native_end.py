@@ -76,6 +76,8 @@ def prep_native_read_end(signal, basecalled_seq, mappy_aligner, signal_size, alb
     print('  signal-based DTW alignment', file=sys.stderr)
 
     signal = trim_signal(signal)
+    if signal is None:
+        return
     normalised_signal = normalise(signal)
 
     adapter_signal_start, adapter_signal_end = align_adapter_to_read_end_dtw(normalised_signal)
