@@ -283,8 +283,8 @@ def check_classify_and_realtime_arguments(args):
 
 def check_prep_arguments(args):
     if args.kit == 'EXP-NBD103_start' or args.kit == 'EXP-NBD103_end':
-        if args.ref_fasta is None:
-            sys.exit('Error: --ref_fasta is required for the EXP-NBD103 kit')
+        if args.ref is None:
+            sys.exit('Error: --ref is required for the EXP-NBD103 kit')
 
 
 def check_balance_arguments(args):

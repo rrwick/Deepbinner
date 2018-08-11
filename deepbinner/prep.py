@@ -34,7 +34,7 @@ def prep(args):
 
     # For the ligation kit we need to align to reference (but not for the rapid kit).
     if args.kit == 'EXP-NBD103_start' or args.kit == 'EXP-NBD103_end':
-        mappy_aligner = mp.Aligner(args.ref_fasta)
+        mappy_aligner = mp.Aligner(args.ref)
     else:
         mappy_aligner = None
 
