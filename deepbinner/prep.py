@@ -40,7 +40,10 @@ def prep(args):
 
     read_count = 0
     for fast5_file in fast5s:
-        read_id, signal = get_read_id_and_signal(fast5_file)
+        try:
+            read_id, signal = get_read_id_and_signal(fast5_file)
+        except KeyError:
+            continue
         if read_id not in read_seqs:
             continue
 
