@@ -51,7 +51,7 @@ def prep(args):
         if albacore_barcodes is not None:
             try:
                 albacore_barcode = albacore_barcodes[read_id]
-            except IndexError:
+            except KeyError:
                 albacore_barcode = None
         else:
             albacore_barcode = None
