@@ -192,7 +192,7 @@ def prep_subparser(subparsers):
                                help='Which kit was used to sequence the data')
 
     other_args = group.add_argument_group('Other')
-    other_args.add_argument('--ref_fasta', type=str,
+    other_args.add_argument('--ref', type=str,
                             help='Reference FASTA file (required for EXP-NBD103 kit)')
     other_args.add_argument('--signal_size', type=int, required=False, default=1024,
                             help='Amount of signal (number of samples) that will be used in the '
