@@ -170,7 +170,11 @@ def get_training_sample_around_signal(signal, include_start, include_end, signal
     else:
         print('    barcode {} sample taken from trimmed signal: '
               '{}-{}'.format(barcode_name, training_start, training_end), file=sys.stderr)
-    return signal[training_start:training_end]
+    training_sample = signal[training_start:training_end]
+    if len(training_sample) == signal_size:
+        return training_sample
+    else:
+        return None
 
 
 def get_training_sample_from_middle_of_signal(signal, signal_size):
@@ -199,7 +203,11 @@ def get_training_sample_before_signal(signal, before_point, signal_size):
     training_end = training_start + signal_size
     print('    no-barcode sample taken from trimmed signal start: '
           '{}-{}'.format(training_start, training_end), file=sys.stderr)
-    return signal[training_start:training_end]
+    training_sample = signal[training_start:training_end]
+    if len(training_sample) == signal_size:
+        return training_sample
+    else:
+        return None
 
 
 def get_training_sample_after_signal(signal, after_point, signal_size):
@@ -214,7 +222,11 @@ def get_training_sample_after_signal(signal, after_point, signal_size):
     training_start = training_end - signal_size
     print('    no-barcode sample taken from signal end: '
           '{}-{}'.format(training_start, training_end), file=sys.stderr)
-    return signal[training_start:training_end]
+    training_sample = signal[training_start:training_end]
+    if len(training_sample) == signal_size:
+        return training_sample
+    else:
+        return None
 
 
 def albacore_barcode_agrees(barcode_name, albacore_barcode):
