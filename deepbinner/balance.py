@@ -14,100 +14,149 @@ If not, see <http://www.gnu.org/licenses/>.
 import collections
 import random
 import noise
-from .trim_signal import clean_signal
+import sys
 
 
 def balance_training_samples(args):
-    bin_counts, bin_lines = load_data_by_bin(args.training_data, args.barcodes)
-    smallest_count = min(bin_counts.values())
-
-    bins = sorted(bin_counts.keys(), key=lambda x: int(x))
-    total_count_excluding_nones = len(bins) * smallest_count
-    total_count = int(round(total_count_excluding_nones / (1.0 - args.none_bin_rate)))
-    none_count = total_count - total_count_excluding_nones
-
-    print()
-    print('Producing ' + str(smallest_count) + ' samples for each bin')
-    print('  and ' + str(none_count) + ' samples with no barcode')
-    print('  for a total of ' + str(total_count) + ' samples')
-
-    # Half of the 'none' samples will be signal from the middle of reads. The remainder will be
-    # randomly generated (in a variety of ways) signal.
-    middle_signal_none_count = int(0.5 * none_count)
-    random_none_count = none_count - middle_signal_none_count
-
-    start_filename = args.out_prefix + '_read_starts'
-    end_filename = args.out_prefix + '_read_ends'
-
-    with open(start_filename, 'w') as start_read_file, open(end_filename, 'w') as end_read_file:
-        middle_signals = []
-        for barcode_bin in bins:
-            for line in random.sample(bin_lines[barcode_bin], k=smallest_count):
-                parts = line.split('\t')
-                assert barcode_bin == parts[1]
-                start_signal, middle_signal, end_signal = parts[2], parts[3], parts[4]
-
-                start_signal, end_signal, good_start, good_end = \
-                    clean_signal(start_signal, end_signal, args.signal_size, args.plot)
-
-                if good_start:
-                    start_read_file.write(barcode_bin)
-                    start_read_file.write('\t')
-                    start_read_file.write(start_signal)
-                    start_read_file.write('\n')
-
-                if good_end:
-                    end_read_file.write(barcode_bin)
-                    end_read_file.write('\t')
-                    end_read_file.write(end_signal)
-                    end_read_file.write('\n')
-
-                middle_signals.append(middle_signal)
-
-        for middle_signal in random.sample(middle_signals, k=middle_signal_none_count):
-            start_read_file.write('0\t')
-            start_read_file.write(middle_signal)
-            start_read_file.write('\n')
-
-        for middle_signal in random.sample(middle_signals, k=middle_signal_none_count):
-            end_read_file.write('0\t')
-            end_read_file.write(middle_signal)
-            end_read_file.write('\n')
-
-        for _ in range(random_none_count):
-            start_read_file.write('0\t')
-            start_read_file.write(get_random_signal(args.signal_size))
-            start_read_file.write('\n')
-            end_read_file.write('0\t')
-            end_read_file.write(get_random_signal(args.signal_size))
-            end_read_file.write('\n')
-
-    print()
+    signal_size = get_signal_size(args.training_data)
+    counts = count_samples_all_runs(args.training_data)
+    barcodes = get_barcodes(counts, args.barcodes)
+    smallest_count = get_smallest_count(barcodes, counts)
+    used_samples_per_run = get_used_samples_per_run(barcodes, counts, smallest_count)
+    select_samples(args.training_data, used_samples_per_run)
+    add_random_signals(args.random_signal, smallest_count, signal_size)
+    print('', file=sys.stderr)
 
 
-def load_data_by_bin(raw_training_data_filename, barcodes):
-    print()
-    print('Loading raw training data... ', end='', flush=True)
-    bin_counts = collections.defaultdict(int)
-    bin_lines = collections.defaultdict(list)
-    with open(raw_training_data_filename, 'rt') as raw_training_data:
-        for line in raw_training_data:
-            if line.startswith('Read_ID'):
-                continue
-            barcode_bin = line.split('\t')[1]
-            if barcodes is None or barcode_bin in barcodes:
-                bin_counts[barcode_bin] += 1
-                bin_lines[barcode_bin].append(line.strip())
-    print('done')
+def get_signal_size(training_data_filenames):
+    signal_sizes = set()
+    for training_data_filename in training_data_filenames:
+        signal_sizes.add(get_signal_size_one_run(training_data_filename))
+    signal_sizes = sorted(signal_sizes)
+    if len(signal_sizes) == 1:
+        signal_size = signal_sizes[0]
+        print('\nSignal size detected as {}'.format(signal_size), file=sys.stderr)
+        return signal_size
+    else:
+        sys.exit('Error: multiple signal sizes detected: {}'.format(signal_sizes))
 
-    print()
-    print('Bin        Samples')
-    print('------------------')
-    bin_nums = sorted(int(x) for x in bin_counts.keys())
-    for bin_num in bin_nums:
-        print('%2d' % bin_num, end='')
-        print('%16s' % bin_counts[str(bin_num)])
-    return bin_counts, bin_lines
+
+def get_signal_size_one_run(training_data_filename):
+    with open(training_data_filename, 'rt') as training_data:
+        for line in training_data:
+            parts = line.strip().split('\t')
+            signal = parts[1].split(',')
+            return len(signal)
+
+
+def count_samples_all_runs(training_data_filenames):
+    print('\nCounting samples in input files:', file=sys.stderr)
+    counts_per_run = {}
+    for training_data_filename in training_data_filenames:
+        counts_per_run[training_data_filename] = count_samples_one_run(training_data_filename)
+    return counts_per_run
+
+
+def count_samples_one_run(training_data_filename):
+    counts = collections.defaultdict(int)
+    with open(training_data_filename, 'rt') as training_data:
+        for line in training_data:
+            barcode = int(line.split('\t', maxsplit=1)[0])
+            counts[barcode] += 1
+
+    count_str = ', '.join(str(b) + '=' + str(counts[b]) for b in sorted(counts.keys()))
+    print('  {}: {}'.format(training_data_filename, count_str), file=sys.stderr)
+    return counts
+
+
+def get_barcodes(all_run_counts, user_supplied_barcodes):
+    if user_supplied_barcodes is None:
+        barcodes = set()
+        for counts in all_run_counts.values():
+            for barcode in counts.keys():
+                barcodes.add(barcode)
+        barcodes = sorted(barcodes)
+        barcode_str = ', '.join(str(x) for x in barcodes)
+        print('\nIncluding all barcodes in output: {}'.format(barcode_str), file=sys.stderr)
+        return barcodes
+    else:
+        barcodes = [int(x) for x in user_supplied_barcodes]
+        if 0 not in barcodes:
+            barcodes.append(0)
+        barcodes = sorted(barcodes)
+        barcode_str = ', '.join(str(x) for x in barcodes)
+        print('\nIncluding user-specified barcodes in output: {}'.format(barcode_str),
+              file=sys.stderr)
+        return barcodes
+
+
+
+def get_smallest_count(barcodes, counts):
+    barcode_counts = []
+    for barcode in barcodes:
+        barcode_counts.append(sum(counts[run][barcode] for run in counts))
+    smallest_count = min(barcode_counts)
+    print('\nSmallest count = {}'.format(smallest_count), file=sys.stderr)
+    print('  all barcoded will be limited to this many samples', file=sys.stderr)
+    return smallest_count
+
+
+def get_used_samples_per_run(barcodes, counts, smallest_count):
+    print('\nDetermining how many samples to take from each file:', file=sys.stderr)
+    used_samples_per_run = {}
+    for barcode in barcodes:
+        used_samples_per_run[barcode] = get_used_samples_per_barcode(barcode, counts,
+                                                                     smallest_count)
+    return used_samples_per_run
+
+
+def get_used_samples_per_barcode(barcode, counts, smallest_count):
+    barcode_name = 'no barcode' if barcode == 0 else 'barcode {:02d}'.format(barcode)
+    print('  {}: '.format(barcode_name), file=sys.stderr, end='')
+    used_samples = collections.defaultdict(int)
+
+    total = 0
+    while total < smallest_count:
+        for run in counts:
+            if used_samples[run] < counts[run][barcode]:
+                used_samples[run] += 1
+                total += 1
+                if total == smallest_count:
+                    break
+    print(', '.join('{}: {}'.format(k, v) for k, v in used_samples.items()), file=sys.stderr)
+    return used_samples
+
+
+def select_samples(training_data_filenames, used_samples_per_run):
+    print('\nSelecting samples and printing to stdout:', file=sys.stderr)
+    for training_data_filename in training_data_filenames:
+        select_samples_one_run(training_data_filename, used_samples_per_run)
+
+
+def select_samples_one_run(training_data_filename, used_samples_per_run):
+    print('  {}'.format(training_data_filename), file=sys.stderr)
+    samples_per_barcode = collections.defaultdict(list)
+    with open(training_data_filename, 'rt') as training_data:
+        for line in training_data:
+            barcode = int(line.split('\t', maxsplit=1)[0])
+            samples_per_barcode[barcode].append(line)
+    for barcode in samples_per_barcode:
+        random.shuffle(samples_per_barcode[barcode])
+    for barcode in sorted(used_samples_per_run):
+        barcode_name = 'no barcode' if barcode == 0 else 'barcode {:02d}'.format(barcode)
+        number_of_samples = used_samples_per_run[barcode][training_data_filename]
+        print('    {}: {}'.format(barcode_name, number_of_samples), file=sys.stderr)
+        for sample in samples_per_barcode[barcode][:number_of_samples]:
+            print(sample, end='')
+
+
+def add_random_signals(random_amount, smallest_count, signal_size):
+    random_count = int(round(random_amount * smallest_count))
+    print('\nAdding {} random signals as no-barcode training samples'.format(random_count),
+          file=sys.stderr)
+    for _ in range(random_count):
+        print('0\t', end='')
+        print(get_random_signal(signal_size))
 
 
 def get_random_signal(signal_size):

@@ -213,22 +213,17 @@ def balance_subparser(subparsers):
                                   formatter_class=MyHelpFormatter)
 
     # Positional arguments
-    group.add_argument('training_data', type=str,
-                       help='Raw training data produced by the prep command')
-    group.add_argument('out_prefix', type=str,
-                       help='Prefix for the output files (*_read_starts and *_read_ends)')
+    group.add_argument('training_data', type=str, nargs='+',
+                       help='Files of raw training data produced by the prep command')
 
     # Optional arguments
     group.add_argument('--barcodes', type=str,
                        help='A comma-delimited list of which barcodes to include (default: '
                             'include all barcodes)')
-    group.add_argument('--signal_size', type=int, required=False, default=1024,
-                       help='Amount of signal (number of samples) that will be used in the neural '
-                            'network')
-    group.add_argument('--none_bin_rate', type=float, required=False, default=0.333333,
-                       help='This fraction of the training samples will be no barcode signal')
-    group.add_argument('--plot', action='store_true',
-                       help='Display the signal plots for each read (for debugging use)')
+    group.add_argument('--random_signal', type=float, required=False, default=1.0,
+                       help='This many random signals will be added to the output as no-barcode '
+                            'training samples (expressed as a multiple of the balanced '
+                            'per-barcode count, default: DEFAULT)')
 
 
 def train_subparser(subparsers):

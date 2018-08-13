@@ -183,18 +183,6 @@ def load_data_into_numpy(data_list, signal_size, class_count):
     return signals, labels
 
 
-def time_model_prediction(model, signals):
-    min_time = float('inf')
-    for _ in range(10):
-        before_time = time.time()
-        model.predict(signals)
-        after_time = time.time()
-        elapsed_milliseconds = (after_time - before_time) * 1000
-        milliseconds_per_read = elapsed_milliseconds / len(signals)
-        min_time = min(min_time, milliseconds_per_read)
-    return min_time
-
-
 def augment_data(signals, labels, signal_size, class_count, augmentation_factor):
     print()
     if augmentation_factor <= 1:
@@ -224,14 +212,6 @@ def augment_data(signals, labels, signal_size, class_count, augmentation_factor)
 
     print('done')
     print()
-
-    # Plot signals (for debugging)
-    # for signal in augmented_signals:
-    #     import matplotlib.pyplot as plt
-    #     fig = plt.figure(figsize=(12, 5))
-    #     fig.add_subplot(1, 1, 1)
-    #     plt.plot(signal)
-    #     plt.show()
 
     return augmented_signals, augmented_labels
 

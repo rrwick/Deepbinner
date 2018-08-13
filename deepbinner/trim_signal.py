@@ -21,57 +21,6 @@ class CannotTrim(IndexError):
     pass
 
 
-def clean_signal(start_signal, end_signal, signal_size, plot):
-    """
-    This function takes signals as input (in the form of a comma-delimited string) and it trims
-    them down to the signal size, removing open pore signal from the ends.
-    """
-    start_signal = [int(x) for x in start_signal.split(',')]
-    end_signal = [int(x) for x in end_signal.split(',')]
-
-    good_start, good_end = True, True
-
-    try:
-        start_trim_pos = find_signal_start_pos(start_signal)
-    except CannotTrim:
-        start_trim_pos = 0
-        good_start = False
-    trimmed_start = start_signal[start_trim_pos:start_trim_pos + signal_size]
-    if len(trimmed_start) < signal_size:
-        good_start = False
-
-    try:
-        end_trim_pos = find_signal_end_pos(end_signal)
-    except CannotTrim:
-        end_trim_pos = 0
-        good_end = False
-    trimmed_end = end_signal[end_trim_pos - signal_size:end_trim_pos]
-    if len(trimmed_end) < signal_size:
-        good_end = False
-
-    # Plot the resulting signal (for debugging)
-    if plot:
-        import matplotlib.pyplot as plt
-        fig = plt.figure(figsize=(12, 5))
-
-        fig.add_subplot(2, 1, 1)
-        plt.plot(start_signal)
-        if good_start:
-            plt.axvspan(start_trim_pos, start_trim_pos + signal_size, alpha=0.2, color='red')
-
-        fig.add_subplot(2, 1, 2)
-        plt.plot(end_signal)
-        if good_end:
-            plt.axvspan(end_trim_pos - signal_size, end_trim_pos, alpha=0.2, color='red')
-
-        plt.show()
-
-    trimmed_start = ','.join(str(x) for x in trimmed_start)
-    trimmed_end = ','.join(str(x) for x in trimmed_end)
-
-    return trimmed_start, trimmed_end, good_start, good_end
-
-
 def find_signal_start_pos(signal):
     """
     Given a signal, this function attempts to identify the approximate position where the open
@@ -99,13 +48,6 @@ def find_signal_start_pos(signal):
             if num_high_stdevs >= window_count_threshold:
                 return pos
         pos += trim_increment
-
-
-def find_signal_end_pos(signal):
-    """
-    This does the same thing as find_signal_start_pos, but for the end of the read.
-    """
-    return len(signal) - find_signal_start_pos(signal[::-1])
 
 
 def get_window_stdev(signal, current_pos, window_num, increment):

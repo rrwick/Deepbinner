@@ -44,7 +44,7 @@ Deepbinner runs on MacOS and Linux.
 
 Its most important requirement is [TensorFlow](https://www.tensorflow.org/), which powers the neural network. The easiest way to install TensorFlow is with pip: `pip3 install tensorflow`. However, [building Tensorflow from source](https://www.tensorflow.org/install/install_sources) may [give better performance](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu). TensorFlow can also [be built to run on NVIDIA GPUs](https://www.tensorflow.org/install/install_linux#NVIDIARequirements) which can give much better performance, but installation is more complex. If you're only going to use Deepbinner to classify reads, you may not need GPU-level performance ([read more here](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is very much recommended.
 
-Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/), [h5py](https://www.h5py.org/), [Matplotlib](https://matplotlib.org/) and [noise](https://github.com/caseman/noise)) but these should be taken care of by pip when installing Deepbinner. It also assumes that you have the `gzip` command available on your command line.
+Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/), [h5py](https://www.h5py.org/) and [noise](https://github.com/caseman/noise)) but these should be taken care of by pip when installing Deepbinner. It also assumes that you have the `gzip` command available on your command line.
 
 
 ## Installation

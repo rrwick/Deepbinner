@@ -2,7 +2,6 @@ edlib
 h5py
 keras
 mappy
-matplotlib
 noise
 numpy
 tensorflow
