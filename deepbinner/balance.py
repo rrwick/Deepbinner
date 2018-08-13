@@ -90,14 +90,13 @@ def get_barcodes(all_run_counts, user_supplied_barcodes):
         return barcodes
 
 
-
 def get_smallest_count(barcodes, counts):
     barcode_counts = []
     for barcode in barcodes:
         barcode_counts.append(sum(counts[run][barcode] for run in counts))
     smallest_count = min(barcode_counts)
     print('\nSmallest count = {}'.format(smallest_count), file=sys.stderr)
-    print('  all barcoded will be limited to this many samples', file=sys.stderr)
+    print('  all barcodes will be limited to this many samples', file=sys.stderr)
     return smallest_count
 
 
@@ -112,7 +111,7 @@ def get_used_samples_per_run(barcodes, counts, smallest_count):
 
 def get_used_samples_per_barcode(barcode, counts, smallest_count):
     barcode_name = 'no barcode' if barcode == 0 else 'barcode {:02d}'.format(barcode)
-    print('  {}: '.format(barcode_name), file=sys.stderr, end='')
+    print('  {}: '.format(barcode_name), file=sys.stderr)
     used_samples = collections.defaultdict(int)
 
     total = 0
@@ -123,7 +122,8 @@ def get_used_samples_per_barcode(barcode, counts, smallest_count):
                 total += 1
                 if total == smallest_count:
                     break
-    print(', '.join('{}: {}'.format(k, v) for k, v in used_samples.items()), file=sys.stderr)
+    for run, count in used_samples.items():
+        print('    {}: {}'.format(run, count), file=sys.stderr)
     return used_samples
 
 
