@@ -58,14 +58,15 @@ def count_samples_all_runs(training_data_filenames):
 
 
 def count_samples_one_run(training_data_filename):
+    print('  {}'.format(training_data_filename), file=sys.stderr)
     counts = collections.defaultdict(int)
     with open(training_data_filename, 'rt') as training_data:
         for line in training_data:
             barcode = int(line.split('\t', maxsplit=1)[0])
             counts[barcode] += 1
-
-    count_str = ', '.join(str(b) + '=' + str(counts[b]) for b in sorted(counts.keys()))
-    print('  {}: {}'.format(training_data_filename, count_str), file=sys.stderr)
+    for barcode in sorted(counts):
+        barcode_name = 'no barcode' if barcode == 0 else 'barcode {:02d}'.format(barcode)
+        print('    {}: {}'.format(barcode_name, counts[barcode]), file=sys.stderr)
     return counts
 
 
@@ -93,9 +94,10 @@ def get_barcodes(all_run_counts, user_supplied_barcodes):
 def get_smallest_count(barcodes, counts):
     barcode_counts = []
     for barcode in barcodes:
-        barcode_counts.append(sum(counts[run][barcode] for run in counts))
-    smallest_count = min(barcode_counts)
-    print('\nSmallest count = {}'.format(smallest_count), file=sys.stderr)
+        barcode_counts.append((barcode, sum(counts[run][barcode] for run in counts)))
+    barcode, smallest_count = min(barcode_counts, key=lambda x: x[1])
+    barcode_name = 'no barcode' if barcode == 0 else 'barcode {:02d}'.format(barcode)
+    print('\nSmallest count = {} ({})'.format(smallest_count, barcode_name), file=sys.stderr)
     print('  all barcodes will be limited to this many samples', file=sys.stderr)
     return smallest_count
 
