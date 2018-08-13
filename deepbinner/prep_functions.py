@@ -164,6 +164,10 @@ def get_training_sample_around_signal(signal, include_start, include_end, signal
     training_start = random.randint(min_start, include_start)
     training_end = training_start + signal_size
 
+    if training_end > len(signal):
+        training_end = len(signal)
+        training_start = training_end - signal_size
+
     if barcode_name is None:
         print('    no-barcode sample taken from trimmed signal: '
               '{}-{}'.format(training_start, training_end), file=sys.stderr)
