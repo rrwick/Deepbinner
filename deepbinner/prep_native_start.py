@@ -204,7 +204,7 @@ def make_barcoded_training_samples(barcode_name, adapter_seq_start, adapter_seq_
             get_training_sample_around_signal(signal, barcode_signal_start, barcode_signal_end,
                                               signal_size, barcode_name)
         if training_sample is not None:
-            print('{}\t'.format(barcode_name), end='')
+            print('{}\t'.format(int(barcode_name)), end='')
             print(','.join(str(s) for s in training_sample))
 
     for _ in range(NON_BARCODED_SAMPLES_FROM_BEFORE_START_BARCODE):

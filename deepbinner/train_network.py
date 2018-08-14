@@ -12,12 +12,14 @@ If not, see <http://www.gnu.org/licenses/>.
 """
 
 import random
-import time
 import numpy as np
 import sys
 
 from keras.layers import Input
 from keras.models import Model
+from keras.callbacks import ModelCheckpoint
+from keras.utils import to_categorical
+
 from .network_architecture import build_network
 from .trim_signal import normalise
 from .classify import load_trained_model
@@ -25,8 +27,9 @@ from .classify import load_trained_model
 
 def train(args):
     print()
-    class_count = determine_class_count(args.training_data)
-    signal_size = determine_signal_size(args.training_data)
+    class_count = determine_class_count(args.train)
+    signal_size = determine_signal_size(args.train)
+    train_steps, val_steps = get_steps_count(args.train, args.val, args.batch_size)
 
     # If the user provided a model to start with, we load that.
     if args.model_in:
@@ -43,55 +46,25 @@ def train(args):
         inputs = Input(shape=(signal_size, 1))
         predictions = build_network(inputs, class_count)
         model = Model(inputs=inputs, outputs=predictions)
-        model.summary()
-        print()
 
-    training_signals, training_labels, validation_signals, validation_labels = \
-        load_training_and_validation_data(args, class_count, signal_size)
+    model.summary()
+    print()
 
-    validation_signals = np.expand_dims(validation_signals, axis=2)
-
-    model.compile(optimizer='adam',
+    model.compile(optimizer='nadam',
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
 
-    for _ in range(args.epochs):
-        # Augmentation is redone after each epoch.
-        augmented_signals, augmented_labels = augment_data(training_signals, training_labels,
-                                                           signal_size, class_count,
-                                                           augmentation_factor=args.aug)
-        augmented_signals = np.expand_dims(augmented_signals, axis=2)
+    training_data = data_generator(args.train, signal_size, args.batch_size, class_count,
+                                   augmentation=args.aug)
+    validation_data = data_generator(args.val, signal_size, args.batch_size, class_count,
+                                     augmentation=1.0)
 
-        model.fit(augmented_signals, augmented_labels, epochs=1, batch_size=args.batch_size,
-                  shuffle=True, validation_data=(validation_signals, validation_labels))
-        model.save(args.model_out)
-    print()
+    checkpoint = ModelCheckpoint(args.model_out, monitor='val_acc', verbose=1,
+                                 save_best_only=True, mode='max')
 
-
-def load_training_and_validation_data(args, class_count, signal_size):
-    signals, labels = load_training_set(args.training_data, signal_size, class_count)
-    validation_count = int(len(signals) * args.val_fraction)
-
-    # If the user supplied separate validation data, then just use that.
-    if args.val_data:
-        validation_signals, validation_labels = load_training_set(args.val_data, signal_size,
-                                                                  class_count, label='validation')
-        return signals, labels, validation_signals, validation_labels
-
-    # Partition off some of the data for use as a validation set.
-    elif validation_count > 0:
-        validation_signals = signals[:validation_count]
-        validation_labels = labels[:validation_count]
-        training_signals = signals[validation_count:]
-        training_labels = labels[validation_count:]
-        print('Training/validation split: {}, {}'.format(len(training_signals),
-                                                         len(validation_signals)))
-        return training_signals, training_labels, validation_signals, validation_labels
-
-    # If we are training using all the data, then we don't divide into training and test. Instead,
-    # the same data (all of it) is used for both.
-    else:
-        return signals, labels, signals, labels
+    model.fit_generator(training_data, steps_per_epoch=min(train_steps, args.batches_per_epoch),
+                        epochs=args.epochs, validation_data=validation_data,
+                        validation_steps=val_steps, callbacks=[checkpoint])
 
 
 def determine_class_count(training_data_filename):
@@ -134,86 +107,64 @@ def determine_signal_size(training_data_filename):
     return max_size
 
 
-def load_training_set(training_data_filename, signal_size, class_count, label='training'):
-    training_data = []
-
+def get_steps_count(training_filename, validation_filename, batch_size):
+    with open(training_filename, 'rt') as training_file:
+        training_count = sum(1 for _ in training_file)
+    with open(validation_filename, 'rt') as validation_file:
+        validation_count = sum(1 for _ in validation_file)
+    if training_count < batch_size:
+        sys.exit('Error: the number of training samples is smaller than the batch size')
+    if validation_count < batch_size:
+        sys.exit('Error: the number of validation samples is smaller than the batch size')
+    print('Data summary:')
+    print('    training samples: {}'.format(training_count))
+    print('  validation samples: {}'.format(validation_count))
+    print('          batch_size: {}'.format(batch_size))
     print()
-    print('Loading {} data from file... '.format(label), end='')
-    with open(training_data_filename, 'rt') as training_data_text:
-        for line in training_data_text:
+    return training_count // batch_size, validation_count // batch_size
+
+
+def data_generator(data_filename, signal_size, batch_size, class_count, augmentation=1.0):
+    """
+    This generator indefinitely yields batches of signals and labels. It enables the use of Keras's
+    fit_generator function which gives a couple benefits:
+    * Can train arbitrarily large epochs because not all data needs to be held in memory.
+    * Can do data augmentation on the CPU for the next batch while the current batch is training
+      on the GPU (more efficient).
+    """
+    augmentation_chance = 1.0 - (1.0 / augmentation)
+
+    data = []
+    with open(data_filename, 'rt') as data_file:
+        for line in data_file:
             parts = line.strip().split('\t')
-            training_data.append((parts[0], parts[1]))
-    print('done')
-    print(' ', len(training_data), 'samples')
+            label = parts[0]
+            signal = np.array([int(x) for x in parts[1].split(',')])
+            assert len(signal) == signal_size
+            data.append((label, normalise(signal)))
+    random.shuffle(data)
 
-    random.shuffle(training_data)
+    current_sample_index = 0
+    while True:
+        batch_signals = np.empty([batch_size, signal_size, 1], dtype=float)
+        batch_labels = np.empty([batch_size, class_count], dtype=float)
+        for i in range(batch_size):
+            try:
+                label, signal = data[current_sample_index]
+            except IndexError:
+                random.shuffle(data)
+                current_sample_index = 0
+                label, signal = data[0]
+            current_sample_index += 1
 
-    print()
-    print('Preparing {} signal data'.format(label), end='')
-    signals, labels = load_data_into_numpy(training_data, signal_size, class_count)
-    print(' done')
+            if random.random() < augmentation_chance:
+                signal = modify_signal(signal)
 
-    return signals, labels
+            label = to_categorical(label, num_classes=class_count)
+            batch_labels[i] = label
+            batch_signals[i] = np.expand_dims(signal, axis=2)
 
-
-def load_data_into_numpy(data_list, signal_size, class_count):
-    signals = np.empty([len(data_list), signal_size], dtype=float)
-    labels = np.empty([len(data_list), class_count], dtype=float)
-
-    for i, data in enumerate(data_list):
-        label, signal = data
-        label = int(label)
-
-        signal = [float(x) for x in signal.split(',')]
-        if len(signal) != signal_size:
-            sys.exit('Error: signal length in training data is inconsistent (expected signal '
-                     'of {} but got {}'.format(signal_size, len(signal)))
-
-        signal = normalise(signal)
-
-        label_list = [0.0] * class_count
-        label_list[label] = 1.0
-
-        signals[i] = signal
-        labels[i] = label_list
-
-        if i % 1000 == 0:
-            print('.', end='', flush=True)
-
-    return signals, labels
-
-
-def augment_data(signals, labels, signal_size, class_count, augmentation_factor):
-    print()
-    if augmentation_factor <= 1:
-        print('Not performing data augmentation')
-        return signals, labels
-
-    print('Augmenting training data by a factor of', augmentation_factor, end='')
-    data_count = len(signals)
-    augmented_data_count = augmentation_factor * data_count
-    augmented_signals = np.empty([augmented_data_count, signal_size], dtype=float)
-    augmented_labels = np.empty([augmented_data_count, class_count], dtype=float)
-
-    i, j = 0, 0
-    for signal, label in zip(signals, labels):
-        augmented_signals[i] = signal
-        augmented_labels[i] = label
-        i += 1
-        for _ in range(augmentation_factor-1):
-            augmented_signals[i] = modify_signal(signal)
-            augmented_labels[i] = label
-            i += 1
-        if j % 1000 == 0:
-            print('.', end='', flush=True)
-        j += 1
-
-    assert i == augmented_data_count
-
-    print('done')
-    print()
-
-    return augmented_signals, augmented_labels
+        yield batch_signals, batch_labels
 
 
 def modify_signal(signal):

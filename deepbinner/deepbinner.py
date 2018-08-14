@@ -230,28 +230,26 @@ def train_subparser(subparsers):
     group = subparsers.add_parser('train', description='Train the neural network',
                                   formatter_class=MyHelpFormatter)
 
-    # Positional arguments
-    group.add_argument('training_data', type=str,
-                       help='Balanced training data produced by the balance command')
-    group.add_argument('model_out', type=str,
-                       help='Filename for the trained model')
+    required_args = group.add_argument_group('Required')
+    required_args.add_argument('--train', type=str, required=True,
+                               help='Balanced training data produced by the balance command')
+    required_args.add_argument('--val', type=str, required=True,
+                               help='Validation data used to assess the training')
+    required_args.add_argument('--model_out', type=str, required=True,
+                                help='Filename for the trained model')
 
-    # Optional arguments
-    group.add_argument('--model_in', type=str,
-                       help='An existing model to use as a starting point for training')
-    group.add_argument('--epochs', type=int, required=False, default=100,
-                       help='Number of training epochs')
-    group.add_argument('--aug', type=int, required=False, default=2,
-                       help='Data augmentation factor (1 = no augmentation)')
-    group.add_argument('--batch_size', type=int, required=False, default=128,
-                       help='Training batch size')
-
-    group.add_argument('--val_fraction', type=float, required=False, default=0.1,
-                       help='This fraction of the training data will be used as a validation'
-                            'set')
-    group.add_argument('--val_data', type=str, required=False,
-                       help='If supplied, Deepbinner will use this set for validation (instead of '
-                            'partitioning off part of the training set)')
+    other_args = group.add_argument_group('Other')
+    other_args.add_argument('--model_in', type=str,
+                            help='An existing model to use as a starting point for training')
+    other_args.add_argument('--epochs', type=int, required=False, default=100,
+                            help='Number of training epochs')
+    other_args.add_argument('--aug', type=float, required=False, default=2.0,
+                            help='Data augmentation factor (1 = no augmentation)')
+    other_args.add_argument('--batch_size', type=int, required=False, default=20,
+                            help='Training batch size')
+    other_args.add_argument('--batches_per_epoch', type=int, required=False, default=5000,
+                            help='The number of samples per epoch will be this times the batch '
+                                 'size')
 
 
 def refine_subparser(subparsers):
