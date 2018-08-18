@@ -23,14 +23,16 @@ def refine_training_samples(args):
         match_count, total_count = 0, 0
         for training_line, class_line in zip(old_training_data, classes):
             classes_parts = class_line.rstrip().split('\t')
-            train_barcode = training_line.split('\t')[0]
             class_barcode = classes_parts[1]
+            if class_barcode == 'none':
+                class_barcode = 0
+            else:
+                class_barcode = int(class_barcode)
 
+            train_barcode = training_line.split('\t')[0]
             # Sanity check to make sure the two files' lines are aligned.
             assert classes_parts[0].split('_')[-1] == train_barcode
-
-            if train_barcode == '0':
-                train_barcode = 'none'
+            train_barcode = int(train_barcode)
 
             if train_barcode == class_barcode:
                 print(training_line, end='')

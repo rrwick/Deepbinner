@@ -236,7 +236,7 @@ def train_subparser(subparsers):
     required_args.add_argument('--val', type=str, required=True,
                                help='Validation data used to assess the training')
     required_args.add_argument('--model_out', type=str, required=True,
-                                help='Filename for the trained model')
+                               help='Filename for the trained model')
 
     other_args = group.add_argument_group('Other')
     other_args.add_argument('--model_in', type=str,

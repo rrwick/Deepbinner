@@ -305,7 +305,7 @@ def call_batch(input_size, output_size, read_ids, signals, model, args, side):
     step_size = input_size // 2
     steps = int(args.scan_size / step_size)
 
-    # TO DO: check to make sure this will work earlier in the code and quit with a nice error
+    # TODO: check to make sure this will work earlier in the code and quit with a nice error
     # message if not so.
     assert steps * step_size == args.scan_size
 
@@ -335,17 +335,37 @@ def call_batch(input_size, output_size, read_ids, signals, model, args, side):
         input_signals = np.expand_dims(input_signals, axis=2)
         labels = model.predict(input_signals, batch_size=args.batch_size)
 
-        # For each read, we keep the new set of probabilities if they have a stronger match for
-        # any of the barcodes (excluding the none class).
-        for i, read_id in enumerate(read_ids):
+        # To combine the probabilities over multiple ranges, we do the following:
+        #  * the no-barcode probability is the minimum of each range's no-barcode probability
+        #  * each barcode's probability is the maximum of each range's probability for that barcode
+        # This will likely result in probabilities that sum to more than one, so we fix this
+        # afterward by scaling all of the barcode probabilities down by the appropriate amount.
+        for i, _ in enumerate(read_ids):
+            if sum(probabilities[i]) == 0.0:  # if this is the first result for this read
+                probabilities[i] = labels[i]
+            else:
+                probabilities[i][0] = min(probabilities[i][0], labels[i][0])
+                for j in range(1, output_size):
+                    probabilities[i][j] = max(probabilities[i][j], labels[i][j])
+
             if max(labels[i][1:]) > max(probabilities[i][1:]):
                 probabilities[i] = labels[i]
 
     barcode_calls = []
-    for i, read_id in enumerate(read_ids):
+    for i, _ in enumerate(read_ids):
+        probabilities[i] = make_sum_to_one(probabilities[i])
         barcode_calls.append(get_barcode_call_from_probabilities(probabilities[i], args.score_diff))
 
     return barcode_calls, probabilities
+
+
+def make_sum_to_one(probabilities):
+    no_barcode_prob = probabilities[0]
+    all_barcode_probs = 1.0 - no_barcode_prob
+    factor = all_barcode_probs / sum(probabilities[1:])
+    probabilities = [p * factor for p in probabilities]
+    probabilities[0] = no_barcode_prob
+    return probabilities
 
 
 def check_input_size(input_size, scan_size):
