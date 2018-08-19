@@ -123,11 +123,18 @@ def classify_and_realtime_options(group):
     barcode_args.add_argument('--score_diff', type=float, required=False, default=0.5,
                               help='For a read to be classified, there must be this much '
                                    'difference between the best and second-best barcode scores')
-    barcode_args.add_argument('--require_both', action='store_true',
-                              help='When classifying reads using two models (read start and read '
-                                   'end) require both barcode calls to match to make the final '
-                                   'call (default: a call on either the read start or read end is '
-                                   'sufficient)')
+
+    two_model_args = group.add_argument_group('Two model (read start and read end) behaviour')
+    two_model_args.add_argument('--require_either', action='store_true',
+                                help='Most lenient approach: a barcode call on either the start '
+                                     'or end is sufficient to classify a read, as long as they do '
+                                     'not disagree on the barcode')
+    two_model_args.add_argument('--require_start', action='store_true',
+                                help='Moderate approach: a start barcode is required to classify '
+                                     'a read but an end barcode is optional (default behaviour)')
+    two_model_args.add_argument('--require_both', action='store_true',
+                                help='Strictest approach: both start and end barcodes must be '
+                                     'present and agree to classify a read')
 
     perf_args = group.add_argument_group('Performance')
     perf_args.add_argument('--batch_size', type=int, required=False, default=256,
@@ -267,11 +274,29 @@ def check_classify_and_realtime_arguments(args):
     model_count = (0 if args.start_model is None else 1) + (0 if args.end_model is None else 1)
     if model_count == 0:
         sys.exit('Error: you must provide at least one model')
-    if model_count < 2 and args.require_both:
-        sys.exit('Error: --require_both can only be used with two models (start and end)')
     if args.score_diff <= 0.0 or args.score_diff > 1.0:
         sys.exit('Error: --score_diff must be in the range (0, 1] (greater than 0 and less than or '
                  'equal to 1)')
+
+    if model_count < 2 and args.require_either:
+        sys.exit('Error: --require_either can only be used with two models (start and end)')
+    if model_count < 2 and args.require_start:
+        sys.exit('Error: --require_start can only be used with two models (start and end)')
+    if model_count < 2 and args.require_both:
+        sys.exit('Error: --require_both can only be used with two models (start and end)')
+
+    if two_model_args_used(args) > 1:
+        sys.exit('Error: only one of the following options can be used: --require_either, '
+                 '--require_start, --require_both')
+    if not args.require_either and not args.require_start and not args.require_both:
+        args.require_start = True
+    assert two_model_args_used(args) == 1
+
+
+def two_model_args_used(args):
+    return sum([1 if args.require_either else 0,
+                1 if args.require_start else 0,
+                1 if args.require_both else 0])
 
 
 def check_prep_arguments(args):

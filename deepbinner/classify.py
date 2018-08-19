@@ -140,7 +140,7 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
 
         for i, read_id in enumerate(read_ids):
             if using_read_starts and using_read_ends:
-                final_barcode_call = combine_calls(start_calls[i], end_calls[i], args.require_both)
+                final_barcode_call = combine_calls(start_calls[i], end_calls[i], args)
             elif using_read_starts:  # starts only
                 final_barcode_call = start_calls[i]
             else:  # ends only
@@ -285,16 +285,31 @@ def get_barcode_call_from_probabilities(probabilities, score_diff_threshold):
         return 'none'
 
 
-def combine_calls(start_call, end_call, require_both):
-    if start_call == end_call:
-        return start_call
-    if require_both:
-        return 'none'
-    if start_call == 'none':
-        return end_call
-    if end_call == 'none':
-        return start_call
-    return 'none'
+def combine_calls(start_call, end_call, args):
+    if args.require_both:
+        if start_call == end_call:
+            return start_call
+        else:
+            return 'none'
+    elif args.require_start:
+        if start_call == end_call:
+            return start_call
+        elif start_call == 'none':
+            return 'none'
+        elif end_call == 'none':
+            return start_call
+        else:
+            return 'none'
+    else:
+        assert args.require_either
+        if start_call == end_call:
+            return start_call
+        elif start_call == 'none':
+            return end_call
+        elif end_call == 'none':
+            return start_call
+        else:
+            return 'none'
 
 
 def call_batch(input_size, output_size, read_ids, signals, model, args, side):
