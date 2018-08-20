@@ -133,7 +133,7 @@ def classify_and_realtime_options(group):
                                 help='Moderate approach: a start barcode is required to classify '
                                      'a read but an end barcode is optional (default behaviour)')
     two_model_args.add_argument('--require_both', action='store_true',
-                                help='Strictest approach: both start and end barcodes must be '
+                                help='Most stringent approach: both start and end barcodes must be '
                                      'present and agree to classify a read')
 
     perf_args = group.add_argument_group('Performance')

@@ -103,7 +103,6 @@ Demultiplex __rapid__ barcoding __raw fast5__ reads (potentially in real-time du
 deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s -s SQK-RBK004_read_starts
 ```
 
-
 The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains a small test set: six fast5 files and a FASTQ of their basecalled sequences. When classified with Deepbinner, you should get two reads each from barcodes 1, 2 and 3.
 
 
@@ -114,6 +113,7 @@ The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains 
 Deepbinner currently only provides pre-trained models for the [EXP-NBD103 native barcoding expansion](https://store.nanoporetech.com/native-barcoding-kit-1d.html) and the [SQK-RBK004 rapid barcoding kit](https://store.nanoporetech.com/rapid-barcoding-kit.html). See more details [here](models).
 
 If you have different data, then pre-trained models aren't available. If you have lots of existing data, you can [train your own network](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md). Alternatively, if you can share your data with me, I could train a model and make it available as part of Deepbinner. [Let me know!](https://github.com/rrwick/Deepbinner/issues/new)
+
 
 
 
@@ -133,54 +133,7 @@ deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends fast5_dir 
 
 Since the native barcoding kit puts barcodes on both the start and end of reads, it makes sense to supply both models to Deepbinner. Most reads should have a barcode at the start, but barcodes at the end are less common. If a read has conflicting barcodes at the start and end, it will be put in the unclassified bin. The `--require_both` option makes Deepbinner only bin reads with a matching start and end barcode, but this is very stringent and will result in far more unclassified reads. If you are using rapid barcoding reads, then there is no end-read model – just use `-s SQK-RBK004_read_starts`.
 
-Here is the full usage for `deepbinner classify`:
-```
-usage: deepbinner classify [-s START_MODEL] [-e END_MODEL] [--scan_size SCAN_SIZE]
-                           [--score_diff SCORE_DIFF] [--require_both] [--batch_size BATCH_SIZE]
-                           [--intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS]
-                           [--inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS]
-                           [--device_count DEVICE_COUNT] [--omp_num_threads OMP_NUM_THREADS] [--verbose]
-                           [-h]
-                           input
-
-Classify fast5 reads
-
-Positional:
-  input                            One of the following: a single fast5 file, a directory of fast5 files
-                                   (will be searched recursively) or a tab-delimited file of training
-                                   data
-
-Models (at least one is required):
-  -s START_MODEL, --start_model START_MODEL
-                                   Model trained on the starts of reads
-  -e END_MODEL, --end_model END_MODEL
-                                   Model trained on the ends of reads
-
-Barcoding:
-  --scan_size SCAN_SIZE            This much of a read's start/end signal will examined for barcode
-                                   signals (default: 6144)
-  --score_diff SCORE_DIFF          For a read to be classified, there must be this much difference
-                                   between the best and second-best barcode scores (default: 0.5)
-  --require_both                   When classifying reads using two models (read start and read end)
-                                   require both barcode calls to match to make the final call (default:
-                                   a call on either the read start or read end is sufficient)
-
-Performance:
-  --batch_size BATCH_SIZE          Neural network batch size (default: 256)
-  --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
-                                   TensorFlow's intra_op_parallelism_threads config option (default: 12)
-  --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
-                                   TensorFlow's inter_op_parallelism_threads config option (default: 1)
-  --device_count DEVICE_COUNT      TensorFlow's device_count config option (default: 1)
-  --omp_num_threads OMP_NUM_THREADS
-                                   OMP_NUM_THREADS environment variable value (default: 12)
-
-Other:
-  --verbose                        Include the output probabilities for all barcodes in the results
-                                   (default: just show the final barcode call)
-  -h, --help                       Show this help message and exit
-```
-
+[Here is the full usage for `deepbinner classify`.](https://github.com/rrwick/Deepbinner/wiki/deepbinner-classify)
 
 ### Step 2: binning basecalled reads
 
@@ -191,20 +144,7 @@ deepbinner bin --classes classifications --reads basecalled_reads.fastq.gz --out
 
 This will leave your original basecalled reads in place, copying the sequences out to new files in your specified output directory. Both FASTA and FASTQ reads inputs are okay, gzipped or not. Deepbinner will gzip the binned reads at the end of the process.
 
-Here is the full usage for `deepbinner bin`:
-```
-usage: deepbinner bin --classes CLASSES --reads READS --out_dir OUT_DIR [-h]
-
-Bin fasta/q reads
-
-Required:
-  --classes CLASSES  Deepbinner classification file (made with the deepbinner classify command)
-  --reads READS      FASTA or FASTQ reads
-  --out_dir OUT_DIR  Directory to output binned read files
-
-Other:
-  -h, --help         Show this help message and exit
-```
+[Here is the full usage for `deepbinner bin`.](https://github.com/rrwick/Deepbinner/wiki/deepbinner-bin)
 
 
 
@@ -220,49 +160,8 @@ This command will move (not copy) fast5 files from the `--in_dir` directory to t
 
 This command doesn't have to be run in real-time – it works just as well on a directory of fast5 files from a finished sequencing run.
 
-Here is the full usage for `deepbinner realtime` (many of the same options as the `classify` command):
-```
-usage: deepbinner realtime --in_dir IN_DIR --out_dir OUT_DIR [-s START_MODEL] [-e END_MODEL]
-                           [--scan_size SCAN_SIZE] [--score_diff SCORE_DIFF] [--require_both]
-                           [--batch_size BATCH_SIZE]
-                           [--intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS]
-                           [--inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS]
-                           [--device_count DEVICE_COUNT] [--omp_num_threads OMP_NUM_THREADS] [-h]
 
-Sort fast5 files during sequencing
-
-Required:
-  --in_dir IN_DIR                  Directory where sequencer deposits fast5 files
-  --out_dir OUT_DIR                Directory to output binned fast5 files
-
-Models (at least one is required):
-  -s START_MODEL, --start_model START_MODEL
-                                   Model trained on the starts of reads
-  -e END_MODEL, --end_model END_MODEL
-                                   Model trained on the ends of reads
-
-Barcoding:
-  --scan_size SCAN_SIZE            This much of a read's start/end signal will examined for barcode
-                                   signals (default: 6144)
-  --score_diff SCORE_DIFF          For a read to be classified, there must be this much difference
-                                   between the best and second-best barcode scores (default: 0.5)
-  --require_both                   When classifying reads using two models (read start and read end)
-                                   require both barcode calls to match to make the final call (default:
-                                   a call on either the read start or read end is sufficient)
-
-Performance:
-  --batch_size BATCH_SIZE          Neural network batch size (default: 256)
-  --intra_op_parallelism_threads INTRA_OP_PARALLELISM_THREADS
-                                   TensorFlow's intra_op_parallelism_threads config option (default: 12)
-  --inter_op_parallelism_threads INTER_OP_PARALLELISM_THREADS
-                                   TensorFlow's inter_op_parallelism_threads config option (default: 1)
-  --device_count DEVICE_COUNT      TensorFlow's device_count config option (default: 1)
-  --omp_num_threads OMP_NUM_THREADS
-                                   OMP_NUM_THREADS environment variable value (default: 12)
-
-Other:
-  -h, --help                       Show this help message and exit
-```
+[Here is the full usage for `deepbinner realtime` (many of the same options as the `classify` command).](https://github.com/rrwick/Deepbinner/wiki/deepbinner-realtime)
 
 
 
@@ -298,6 +197,8 @@ done
 ```
 
 
+
+
 ## Performance
 
 Deepbinner lives up to its name by using a _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a typical MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 15 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
@@ -313,7 +214,7 @@ You can train your own neural network with Deepbinner, but you'll need two thing
 * Lots of training data using the same barcoding and sequencing kits. More is better, so ideally from more than one sequencing run.
 * A fast computer to train on, ideally with [TensorFlow running on a big GPU](https://www.tensorflow.org/install/install_linux#NVIDIARequirements).
 
-If you can meet those requirements, then read on in the [Deepbinner training instructions](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md)!
+If you can meet those requirements, then read on in the [Deepbinner training instructions](https://github.com/rrwick/Deepbinner/wiki/Training-instructions)!
 
 
 
