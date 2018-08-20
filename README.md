@@ -172,29 +172,7 @@ If you use both Deepbinner and Albacore to demultiplex reads, only keeping reads
 
 The easiest way to achieve this is to follow the [Using Deepbinner before basecalling](#using-deepbinner-before-basecalling) instructions above. Then run Albacore separately on each of Deepbinner's output directories, with its `--barcoding` option on. You should find that for each bin, Albacore puts most of the reads in the same bin (the reads we want to keep), some in the unclassified bin (slightly suspect reads, likely with lower quality basecalls) and a small number in a different bin (very suspect reads).
 
-Here's some Bash code to carry this out automatically:
-```bash
-# Run Deepbinner classification (possibly in real time during sequencing)
-deepbinner realtime --in_dir fast5s --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
-
-mkdir demultiplexed_fastqs
-
-# Loop through each of Deepbinner's bin directories of fast5s.
-for b in $(ls demultiplexed_fast5s | sed 's/none//' | sort -n); do  # skip the 'none' bin
-
-    # Basecall with Albacore (change settings as appropriate to suit your needs).
-    albacore_in=demultiplexed_fast5s/"$b"
-    albacore_out=albacore_"$b"
-    read_fast5_basecaller.py -f FLO-MIN106 -k SQK-LSK108 -i $albacore_in -t 20 --barcoding -s $albacore_out -o fastq --disable_filtering
-
-    # Gzip the reads which Albacore put in the matching bin.
-    barcode_num=$(printf "%02d" $b)  # pad barcode numbers to two digits
-    cat "$albacore_out"/workspace/barcode"$barcode_num"/*.fastq | gzip > demultiplexed_fastqs/barcode"$barcode_num".fastq.gz
-
-    # Clean up Albacore's output directory to save space.
-    rm -r $albacore_out
-done
-```
+[Here are some instructions and Bash code to carry this out automatically.](https://github.com/rrwick/Deepbinner/wiki/Using-Deepbinner-with-Albacore)
 
 
 
