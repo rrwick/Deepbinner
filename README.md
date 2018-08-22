@@ -83,24 +83,24 @@ If you run Deepbinner this way, it's up to you to make sure that all [necessary 
 
 Demultiplex __native__ barcoding reads that are __already basecalled__:
 ```
-deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends fast5_dir > classifications
+deepbinner classify --native fast5_dir > classifications
 deepbinner bin --classes classifications --reads basecalled_reads.fastq.gz --out_dir demultiplexed_reads
 ```
 
 Demultiplex __rapid__ barcoding reads that are __already basecalled__:
 ```
-deepbinner classify -s SQK-RBK004_read_starts fast5_dir > classifications
+deepbinner classify --rapid fast5_dir > classifications
 deepbinner bin --classes classifications --reads basecalled_reads.fastq.gz --out_dir demultiplexed_reads
 ```
 
 Demultiplex __native__ barcoding __raw fast5__ reads (potentially in real-time during a sequencing run):
 ```
-deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
+deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s --native
 ```
 
 Demultiplex __rapid__ barcoding __raw fast5__ reads (potentially in real-time during a sequencing run):
 ```
-deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s -s SQK-RBK004_read_starts
+deepbinner realtime --in_dir fast5_dir --out_dir demultiplexed_fast5s --rapid
 ```
 
 The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains a small test set: six fast5 files and a FASTQ of their basecalled sequences. When classified with Deepbinner, you should get two reads each from barcodes 1, 2 and 3.
@@ -128,10 +128,10 @@ If your reads are already basecalled, then running Deepbinner is a two-step proc
 
 This is accomplished using the `deepbinner classify` command, e.g.:
 ```
-deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends fast5_dir > classifications
+deepbinner classify --native fast5_dir > classifications
 ```
 
-Since the native barcoding kit puts barcodes on both the start and end of reads, it makes sense to supply both models to Deepbinner. Most reads should have a barcode at the start, but barcodes at the end are less common. If a read has conflicting barcodes at the start and end, it will be put in the unclassified bin. The `--require_both` option makes Deepbinner only bin reads with a matching start and end barcode, but this is very stringent and will result in far more unclassified reads. If you are using rapid barcoding reads, then there is no end-read model – just use `-s SQK-RBK004_read_starts`.
+Since the native barcoding kit puts barcodes on both the start and end of reads, Deepbinner will look for both. Most reads should have a barcode at the start, but barcodes at the end are less common. If a read has conflicting barcodes at the start and end, it will be put in the unclassified bin. The `--require_both` option makes Deepbinner only bin reads with a matching start and end barcode, but this is very stringent and will result in far more unclassified reads. See more on the wiki: [Combining start and end barcodes](https://github.com/rrwick/Deepbinner/wiki/Combining-start-and-end-barcodes). None of this applies if you are using rapid barcoding reads (`--rapid`), as they only have a barcode at the start.
 
 [Here is the full usage for `deepbinner classify`.](https://github.com/rrwick/Deepbinner/wiki/deepbinner-classify)
 
@@ -153,7 +153,7 @@ This will leave your original basecalled reads in place, copying the sequences o
 
 If you haven't yet basecalled your reads, you can use `deepbinner realtime` to bin the fast5 files, e.g.:
 ```
-deepbinner realtime --in_dir fast5s --out_dir demultiplexed_fast5s -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends
+deepbinner realtime --in_dir fast5s --out_dir demultiplexed_fast5s --native
 ```
 
 This command will move (not copy) fast5 files from the `--in_dir` directory to the `--out_dir` directory. As the command name suggests, this can be run in real-time – Deepbinner will watch the input directory and wait for new reads. Just set `--in_dir` to where MinKNOW deposits its reads. Or if you sequence on a laptop and copy the reads to a server, you can run Deepbinner on the server, watching the directory where the reads are deposited. Use Ctrl-C to stop it. 
