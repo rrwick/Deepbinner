@@ -16,6 +16,7 @@ import os
 import pathlib
 import random
 import re
+import shutil
 import subprocess
 import sys
 
@@ -182,7 +183,12 @@ def get_sequence_file_type(filename):
 
 
 def print_summary_and_zip(bin_counts, out_filenames):
-    print('Gzipping reads:')
+    if shutil.which('pigz'):
+        gzip = 'pigz'
+        print('Gzipping reads (with pigz):')
+    else:
+        gzip = 'gzip'
+        print('Gzipping reads:')
     print('  Barcode       Reads     File')
     class_names = out_filenames.keys()
     if 'not found' in bin_counts:
@@ -190,7 +196,7 @@ def print_summary_and_zip(bin_counts, out_filenames):
     for class_name in class_names:
         if class_name in out_filenames:
             filename = out_filenames[class_name]
-            subprocess.check_output(['gzip', filename])
+            subprocess.check_output([gzip, filename])
             gzipped_filename = filename + '.gz'
         else:
             gzipped_filename = ''
