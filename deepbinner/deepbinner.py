@@ -289,7 +289,7 @@ def check_classify_and_realtime_arguments(args):
         sys.exit('Error: only one of the following options can be used: --require_either, '
                  '--require_start, --require_both')
     if not args.require_either and not args.require_start and not args.require_both:
-        args.require_start = True
+        args.require_either = True
     assert two_model_args_used(args) == 1
 
 
