@@ -59,7 +59,8 @@ class MyHelpFormatter(argparse.HelpFormatter):
         help text.
         """
         help_text = action.help
-        if action.default != argparse.SUPPRESS and action.default is not None:
+        if action.default != argparse.SUPPRESS and action.default is not None \
+                and action.default is not False:
             if 'default' not in help_text.lower():
                 help_text += ' (default: {})'.format(action.default)
             elif 'default: DEFAULT' in help_text:

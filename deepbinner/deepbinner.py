@@ -12,6 +12,7 @@ If not, see <http://www.gnu.org/licenses/>.
 """
 
 import argparse
+import pathlib
 import sys
 from .help_formatter import MyParser, MyHelpFormatter
 from .version import __version__
@@ -110,7 +111,13 @@ def classify_and_realtime_options(group):
     A few options are used in both the classify and realtime command, so they are described in this
     separate function.
     """
-    model_args = group.add_argument_group('Models (at least one is required)')
+    model_args = group.add_argument_group('Model presets')
+    model_args.add_argument('--native', action='store_true',
+                            help='Preset for EXP-NBD103 read start and end models')
+    model_args.add_argument('--rapid', action='store_true',
+                            help='Preset for SQK-RBK004 read start model')
+
+    model_args = group.add_argument_group('Models (at least one is required if not using a preset)')
     model_args.add_argument('-s', '--start_model', type=str, required=False,
                             help='Model trained on the starts of reads')
     model_args.add_argument('-e', '--end_model', type=str, required=False,
@@ -271,6 +278,20 @@ def refine_subparser(subparsers):
 
 
 def check_classify_and_realtime_arguments(args):
+    if args.native and args.rapid:
+        sys.exit('Error: you can only use one model preset (--native or --rapid)')
+    if args.native or args.rapid:
+        preset_name = 'native' if args.native else 'rapid'
+        if args.start_model is not None or args.end_model is not None:
+            sys.exit('Error: you cannot explicitly specify a model and '
+                     'also use a model preset (--{})'.format(preset_name))
+    if args.native:
+        args.start_model = find_native_start_model()
+        args.end_model = find_native_end_model()
+
+    if args.rapid:
+        args.start_model = find_rapid_start_model()
+
     model_count = (0 if args.start_model is None else 1) + (0 if args.end_model is None else 1)
     if model_count == 0:
         sys.exit('Error: you must provide at least one model')
@@ -291,6 +312,34 @@ def check_classify_and_realtime_arguments(args):
     if not args.require_either and not args.require_start and not args.require_both:
         args.require_either = True
     assert two_model_args_used(args) == 1
+
+
+def find_native_start_model():
+    return find_model('EXP-NBD103_read_starts')
+
+
+def find_native_end_model():
+    return find_model('EXP-NBD103_read_ends')
+
+
+def find_rapid_start_model():
+    return find_model('SQK-RBK004_read_starts')
+
+
+def find_model(model_name):
+    try:
+        start_model = pathlib.Path(__file__).parents[1] / 'models' / model_name
+        if start_model.is_file():
+            return start_model
+    except IndexError:
+        pass
+    try:
+        start_model = pathlib.Path(__file__).parents[0] / 'models' / model_name
+        if start_model.is_file():
+            return start_model
+    except IndexError:
+        pass
+    sys.exit('Error: could not find {} - did Deepbinner install correctly?'.format(model_name))
 
 
 def two_model_args_used(args):

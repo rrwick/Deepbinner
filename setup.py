@@ -70,6 +70,19 @@ class DeepbinnerInstall(install):
                 print('           cause for concern if you were going to train a custom ')
                 print('           Deepbinner neural network)')
 
+            # Copy the pre-trained models to the install location.
+            try:
+                os.makedirs(os.path.join(self.install_lib, 'deepbinner', 'models'))
+            except FileExistsError:
+                pass
+            print()
+            for model in ['EXP-NBD103_read_starts', 'EXP-NBD103_read_ends',
+                          'SQK-RBK004_read_starts']:
+                install_model_dir = os.path.join(self.install_lib, 'deepbinner', 'models')
+                print('Copying {} to {}'.format(model, install_model_dir))
+                model_file = os.path.join('models', model)
+                shutil.copy(model_file, os.path.join(self.install_lib, 'deepbinner', 'models'))
+
             print('\nDeepbinner is installed!\n')
 
 

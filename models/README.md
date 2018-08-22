@@ -9,6 +9,10 @@ Since native barcoding adds barcodes to both the start and end of reads, there a
 deepbinner classify -s EXP-NBD103_read_starts -e EXP-NBD103_read_ends input
 ```
 
+Or with the preset:
+```
+deepbinner classify --native input
+```
 
 
 
@@ -21,6 +25,10 @@ Since rapid barcoding only adds a barcode to the start of reads, there is only o
 deepbinner classify -s SQK-RBK004_read_starts input
 ```
 
+Or with the preset:
+```
+deepbinner classify --rapid input
+```
 
 
 
