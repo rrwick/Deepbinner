@@ -42,9 +42,9 @@ Deepbinner runs on MacOS and Linux.
 
 <img align="right" src="images/tensorflow.png" alt="TensorFlow logo" width="105">
 
-Its most important requirement is [TensorFlow](https://www.tensorflow.org/), which powers the neural network. The easiest way to install TensorFlow is with pip: `pip3 install tensorflow`. However, [building Tensorflow from source](https://www.tensorflow.org/install/install_sources) may [give better performance](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu). TensorFlow can also [be built to run on NVIDIA GPUs](https://www.tensorflow.org/install/install_linux#NVIDIARequirements) which can give much better performance, but installation is more complex. If you're only going to use Deepbinner to classify reads, you may not need GPU-level performance ([read more here](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is very much recommended.
+Its most important requirement is [TensorFlow](https://www.tensorflow.org/), which powers the neural network. The easiest way to install TensorFlow is with pip: `pip3 install tensorflow`. TensorFlow can also [run on NVIDIA GPUs](https://www.tensorflow.org/install/install_linux#tensorflow_gpu_support) which can give much better performance, but installation is more complex (you'll need [CUDA](http://nvidia.com/cuda) and [cuDNN](http://developer.nvidia.com/cudnn)). If you're only going to use Deepbinner to classify reads, you may not need GPU-level performance ([read more here](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is very much recommended.
 
-Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/), [h5py](https://www.h5py.org/) and [noise](https://github.com/caseman/noise)) but these should be taken care of by pip when installing Deepbinner. It also assumes that you have the `gzip` command available on your command line.
+Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/) and [h5py](https://www.h5py.org/)) but these should be taken care of when installing Deepbinner. It also assumes that you have the `gzip` command available on your command line. If you are going to [train your own Deepbinner network](https://github.com/rrwick/Deepbinner/wiki/Training-instructions), then you'll need a few more Python packages: [noise](https://github.com/caseman/noise), [edlib](https://github.com/Martinsos/edlib/tree/master/bindings/python) and [mappy](https://github.com/lh3/minimap2/tree/master/python).
 
 
 ## Installation
@@ -112,7 +112,7 @@ The [sample_reads.tar.gz](sample_reads.tar.gz) file in this repository contains 
 
 Deepbinner currently only provides pre-trained models for the [EXP-NBD103 native barcoding expansion](https://store.nanoporetech.com/native-barcoding-kit-1d.html) and the [SQK-RBK004 rapid barcoding kit](https://store.nanoporetech.com/rapid-barcoding-kit.html). See more details [here](models).
 
-If you have different data, then pre-trained models aren't available. If you have lots of existing data, you can [train your own network](https://github.com/rrwick/Deepbinner/blob/master/training_instructions.md). Alternatively, if you can share your data with me, I could train a model and make it available as part of Deepbinner. [Let me know!](https://github.com/rrwick/Deepbinner/issues/new)
+If you have different data, then pre-trained models aren't available. If you have lots of existing data, you can [train your own network](https://github.com/rrwick/Deepbinner/wiki/Training-instructions). Alternatively, if you can share your data with me, I could train a model and make it available as part of Deepbinner. [Let me know!](https://github.com/rrwick/Deepbinner/issues/new)
 
 
 
@@ -181,7 +181,7 @@ The easiest way to achieve this is to follow the [Using Deepbinner before baseca
 
 Deepbinner lives up to its name by using a _deep_ neural network. It's therefore not particularly fast, but should be fast enough to keep up with a typical MinION run. If you want to squeeze out a bit more performance, try adjusting the 'Performance' options. [Read more here](https://www.tensorflow.org/performance/performance_guide) for a detailed description of these options. In my tests, it can classify about 15 reads/sec using 12 threads (the default). Giving it more threads helps a little, but not much.
 
-Running Deepbinner on a GPU can give much better performance. My tests on a Tesla K80 could classify over 100 reads/sec. Modern GPUs could probably do even better.
+[Building TensorFlow from source](https://www.tensorflow.org/install/install_sources) may [give better performance](https://www.tensorflow.org/performance/performance_guide#optimizing_for_cpu) (because it can then use all available instruction sets on your CPU). Running TensorFlow on a GPU will definitely give better Deepbinner performance: my tests on a Tesla K80 could classify over 100 reads/sec.
 
 
 
