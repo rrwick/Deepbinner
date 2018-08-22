@@ -104,7 +104,9 @@ def load_trained_model(model_file, out_dest=sys.stderr):
 
 
 def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, end_input_size,
-                         output_size, args, full_output=True):
+                         output_size, args, full_output=True, summary_table=True):
+    if not fast5_files:
+        sys.exit('Error: no fast5 files found')
     if full_output:
         out_dest = sys.stderr
     else:
@@ -166,7 +168,8 @@ def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, 
 
     if full_output:
         print('', file=sys.stderr)
-        print_summary_table(classifications)
+        if summary_table:
+            print_summary_table(classifications)
     return classifications, read_id_to_fast5_file
 
 

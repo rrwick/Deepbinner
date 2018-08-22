@@ -13,14 +13,6 @@ If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 
-from .trim_signal import normalise
-from .dtw_semi_global import semi_global_dtw_with_rescaling
-from .prep_functions import align_read_to_reference, align_adapter_to_read_seq, trim_signal, \
-    get_best_barcode, align_barcode_to_read_dtw, get_training_sample_around_signal, \
-    get_training_sample_from_middle_of_signal, get_training_sample_before_signal
-from . import sequences
-from . import signals
-
 
 def prep_rapid_read_start():
-     pass
+    sys.exit('Error: rapid read prep not yet implemented')

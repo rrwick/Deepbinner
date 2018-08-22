@@ -72,9 +72,9 @@ class TestFast5Classification(unittest.TestCase):
 
     def setUp(self):
         self.fast5_dir = pathlib.Path(__file__).parent / 'fast5_files'
-        self.single_fast5 = self.fast5_dir / '5210_N125509_20170424_FN2002039725_MN19691_' \
-                                             'sequencing_run_klebs_033_75349_ch17_read145_' \
-                                             'strand.fast5'
+        self.single_fast5 = self.fast5_dir / '5210_N128870_20180511_FAH70336_MN20200_' \
+                                             'sequencing_run_057_Deepbinner_amplicon_43629_' \
+                                             'read_11206_ch_157_strand.fast5'
         model_dir = pathlib.Path(__file__).parent.parent / 'models'
         self.start_model = model_dir / 'EXP-NBD103_read_starts'
         self.end_model = model_dir / 'EXP-NBD103_read_ends'
@@ -92,6 +92,8 @@ class TestFast5Classification(unittest.TestCase):
         parser.add_argument('--batch_size', default=128)
         parser.add_argument('--scan_size', default=6144)
         parser.add_argument('--score_diff', default=0.5)
+        parser.add_argument('--require_either', default=False)
+        parser.add_argument('--require_start', default=False)
         parser.add_argument('--require_both', default=False)
         self.args = parser.parse_args([])
 
@@ -110,11 +112,12 @@ class TestFast5Classification(unittest.TestCase):
                                                      end_model, end_input_size, output_size,
                                                      self.args, full_output=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
-        self.assertEqual(classifications['4de68977-34ab-4c3e-8adf-abfa45d47690'], '11')
-        self.assertEqual(classifications['58fdba7d-9b96-4613-9044-b18d038c0ea4'], 'none')
-        self.assertEqual(classifications['baa78ecd-3897-4b96-ad9f-ef3f92f3d2fd'], '7')
-        self.assertEqual(classifications['398f4cd6-be09-4de9-8251-efb539fc46aa'], 'none')
+        self.assertEqual(classifications['63c20e8e-9b10-4ede-9862-9a53eec3c512'], '1')
+        self.assertEqual(classifications['618f68a6-3a9a-45e1-afe0-845172b20349'], '1')
+        self.assertEqual(classifications['9bfcf22c-5654-4b4c-b8f7-d3cebd416338'], '2')
+        self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
+        self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
 
     def test_end_model_only(self):
         fast5s = deepbinner.load_fast5s.find_all_fast5s(self.fast5_dir, verbose=True)
@@ -127,13 +130,15 @@ class TestFast5Classification(unittest.TestCase):
                                                      end_model, end_input_size, output_size,
                                                      self.args, full_output=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
-        self.assertEqual(classifications['4de68977-34ab-4c3e-8adf-abfa45d47690'], '4')
-        self.assertEqual(classifications['58fdba7d-9b96-4613-9044-b18d038c0ea4'], '10')
-        self.assertEqual(classifications['baa78ecd-3897-4b96-ad9f-ef3f92f3d2fd'], 'none')
-        self.assertEqual(classifications['398f4cd6-be09-4de9-8251-efb539fc46aa'], 'none')
+        self.assertEqual(classifications['63c20e8e-9b10-4ede-9862-9a53eec3c512'], '1')
+        self.assertEqual(classifications['618f68a6-3a9a-45e1-afe0-845172b20349'], 'none')
+        self.assertEqual(classifications['9bfcf22c-5654-4b4c-b8f7-d3cebd416338'], 'none')
+        self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
+        self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
 
     def test_start_and_end_models(self):
+        self.args.require_either = True
         fast5s = deepbinner.load_fast5s.find_all_fast5s(self.fast5_dir, verbose=True)
 
         start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
@@ -144,11 +149,12 @@ class TestFast5Classification(unittest.TestCase):
                                                      end_model, end_input_size, output_size,
                                                      self.args, full_output=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
-        self.assertEqual(classifications['4de68977-34ab-4c3e-8adf-abfa45d47690'], 'none')
-        self.assertEqual(classifications['58fdba7d-9b96-4613-9044-b18d038c0ea4'], '10')
-        self.assertEqual(classifications['baa78ecd-3897-4b96-ad9f-ef3f92f3d2fd'], '7')
-        self.assertEqual(classifications['398f4cd6-be09-4de9-8251-efb539fc46aa'], 'none')
+        self.assertEqual(classifications['63c20e8e-9b10-4ede-9862-9a53eec3c512'], '1')
+        self.assertEqual(classifications['618f68a6-3a9a-45e1-afe0-845172b20349'], '1')
+        self.assertEqual(classifications['9bfcf22c-5654-4b4c-b8f7-d3cebd416338'], '2')
+        self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
+        self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
 
     def test_start_and_end_models_require_both(self):
         self.args.require_both = True
@@ -162,11 +168,12 @@ class TestFast5Classification(unittest.TestCase):
                                                      end_model, end_input_size, output_size,
                                                      self.args, full_output=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
-        self.assertEqual(classifications['4de68977-34ab-4c3e-8adf-abfa45d47690'], 'none')
-        self.assertEqual(classifications['58fdba7d-9b96-4613-9044-b18d038c0ea4'], 'none')
-        self.assertEqual(classifications['baa78ecd-3897-4b96-ad9f-ef3f92f3d2fd'], 'none')
-        self.assertEqual(classifications['398f4cd6-be09-4de9-8251-efb539fc46aa'], 'none')
+        self.assertEqual(classifications['63c20e8e-9b10-4ede-9862-9a53eec3c512'], '1')
+        self.assertEqual(classifications['618f68a6-3a9a-45e1-afe0-845172b20349'], 'none')
+        self.assertEqual(classifications['9bfcf22c-5654-4b4c-b8f7-d3cebd416338'], 'none')
+        self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
+        self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
 
     def test_regular_output_start_only(self):
         start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
@@ -175,13 +182,14 @@ class TestFast5Classification(unittest.TestCase):
         classifications, _ = \
             deepbinner.classify.classify_fast5_files([self.single_fast5], start_model,
                                                      start_input_size, end_model, end_input_size,
-                                                     output_size, self.args, full_output=True)
+                                                     output_size, self.args, full_output=True,
+                                                     summary_table=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
         output_lines = self.captured_stdout.getvalue().splitlines()
         self.assertEqual(len(output_lines), 2)
         self.assertEqual(output_lines[0], 'read_ID\tbarcode_call')
-        self.assertEqual(output_lines[1], 'cce0d2da-035e-4e74-9622-4b8884dbe070\t5')
+        self.assertEqual(output_lines[1], '177c3867-6812-4476-a6da-9e4d5c43b760\t3')
 
     def test_verbose_output_start_only(self):
         self.args.verbose = True
@@ -192,15 +200,16 @@ class TestFast5Classification(unittest.TestCase):
         classifications, _ = \
             deepbinner.classify.classify_fast5_files([self.single_fast5], start_model,
                                                      start_input_size, end_model, end_input_size,
-                                                     output_size, self.args, full_output=True)
+                                                     output_size, self.args, full_output=True,
+                                                     summary_table=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
         output_lines = self.captured_stdout.getvalue().splitlines()
         self.assertEqual(len(output_lines), 2)
         self.assertEqual(output_lines[0], 'read_ID\tbarcode_call\t'
                                           'none\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12')
-        self.assertEqual(output_lines[1], 'cce0d2da-035e-4e74-9622-4b8884dbe070\t5\t'
-                                          '0.00\t0.00\t0.00\t0.00\t0.00\t1.00\t0.00\t'
+        self.assertEqual(output_lines[1], '177c3867-6812-4476-a6da-9e4d5c43b760\t3\t'
+                                          '0.00\t0.00\t0.00\t1.00\t0.00\t0.00\t0.00\t'
                                           '0.00\t0.00\t0.00\t0.00\t0.00\t0.00')
 
     def test_regular_output_end_only(self):
@@ -210,13 +219,14 @@ class TestFast5Classification(unittest.TestCase):
         classifications, _ = \
             deepbinner.classify.classify_fast5_files([self.single_fast5], start_model,
                                                      start_input_size, end_model, end_input_size,
-                                                     output_size, self.args, full_output=True)
+                                                     output_size, self.args, full_output=True,
+                                                     summary_table=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
         output_lines = self.captured_stdout.getvalue().splitlines()
         self.assertEqual(len(output_lines), 2)
         self.assertEqual(output_lines[0], 'read_ID\tbarcode_call')
-        self.assertEqual(output_lines[1], 'cce0d2da-035e-4e74-9622-4b8884dbe070\t5')
+        self.assertEqual(output_lines[1], '177c3867-6812-4476-a6da-9e4d5c43b760\t3')
 
     def test_verbose_output_end_only(self):
         self.args.verbose = True
@@ -226,33 +236,37 @@ class TestFast5Classification(unittest.TestCase):
         classifications, _ = \
             deepbinner.classify.classify_fast5_files([self.single_fast5], start_model,
                                                      start_input_size, end_model, end_input_size,
-                                                     output_size, self.args, full_output=True)
+                                                     output_size, self.args, full_output=True,
+                                                     summary_table=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
         output_lines = self.captured_stdout.getvalue().splitlines()
         self.assertEqual(len(output_lines), 2)
         self.assertEqual(output_lines[0], 'read_ID\tbarcode_call\t'
                                           'none\t1\t2\t3\t4\t5\t6\t7\t8\t9\t10\t11\t12')
-        self.assertEqual(output_lines[1], 'cce0d2da-035e-4e74-9622-4b8884dbe070\t5\t'
-                                          '0.00\t0.00\t0.00\t0.00\t0.00\t1.00\t0.00\t'
+        self.assertEqual(output_lines[1], '177c3867-6812-4476-a6da-9e4d5c43b760\t3\t'
+                                          '0.00\t0.00\t0.00\t1.00\t0.00\t0.00\t0.00\t'
                                           '0.00\t0.00\t0.00\t0.00\t0.00\t0.00')
 
     def test_regular_output_start_and_end(self):
+        self.args.require_either = True
         start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
             deepbinner.classify.load_and_check_models(self.start_model, self.end_model, 6144,
                                                       out_dest=self.captured_stderr)
         classifications, _ = \
             deepbinner.classify.classify_fast5_files([self.single_fast5], start_model,
                                                      start_input_size, end_model, end_input_size,
-                                                     output_size, self.args, full_output=True)
+                                                     output_size, self.args, full_output=True,
+                                                     summary_table=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
         output_lines = self.captured_stdout.getvalue().splitlines()
         self.assertEqual(len(output_lines), 2)
         self.assertEqual(output_lines[0], 'read_ID\tbarcode_call')
-        self.assertEqual(output_lines[1], 'cce0d2da-035e-4e74-9622-4b8884dbe070\t5')
+        self.assertEqual(output_lines[1], '177c3867-6812-4476-a6da-9e4d5c43b760\t3')
 
     def test_verbose_output_start_and_end(self):
+        self.args.require_either = True
         self.args.verbose = True
         start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
             deepbinner.classify.load_and_check_models(self.start_model, self.end_model, 6144,
@@ -260,9 +274,10 @@ class TestFast5Classification(unittest.TestCase):
         classifications, _ = \
             deepbinner.classify.classify_fast5_files([self.single_fast5], start_model,
                                                      start_input_size, end_model, end_input_size,
-                                                     output_size, self.args, full_output=True)
+                                                     output_size, self.args, full_output=True,
+                                                     summary_table=False)
 
-        self.assertEqual(classifications['cce0d2da-035e-4e74-9622-4b8884dbe070'], '5')
+        self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
         output_lines = self.captured_stdout.getvalue().splitlines()
         self.assertEqual(len(output_lines), 2)
         self.assertEqual(output_lines[0], 'read_ID\tbarcode_call\tstart_none\tstart_1\tstart_2\t'
@@ -271,7 +286,7 @@ class TestFast5Classification(unittest.TestCase):
                                           'start_barcode_call\tend_none\tend_1\tend_2\tend_3\t'
                                           'end_4\tend_5\tend_6\tend_7\tend_8\tend_9\tend_10\t'
                                           'end_11\tend_12\tend_barcode_call')
-        self.assertEqual(output_lines[1], 'cce0d2da-035e-4e74-9622-4b8884dbe070\t5\t0.00\t0.00\t'
-                                          '0.00\t0.00\t0.00\t1.00\t0.00\t0.00\t0.00\t0.00\t0.00\t'
-                                          '0.00\t0.00\t5\t0.00\t0.00\t0.00\t0.00\t0.00\t1.00\t'
-                                          '0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t5')
+        self.assertEqual(output_lines[1], '177c3867-6812-4476-a6da-9e4d5c43b760\t3\t0.00\t0.00\t'
+                                          '0.00\t1.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t'
+                                          '0.00\t0.00\t3\t0.00\t0.00\t0.00\t1.00\t0.00\t0.00\t'
+                                          '0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t0.00\t3')

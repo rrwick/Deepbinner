@@ -15,6 +15,7 @@ import argparse
 import unittest
 import deepbinner.classify
 
+
 def get_args(combine_mode):
     parser = argparse.ArgumentParser()
     parser.add_argument('--require_either', action='store_true')

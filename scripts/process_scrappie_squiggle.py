@@ -42,7 +42,6 @@ def main():
             time += dwell
             squiggles[current_seq].append((time - 0.01, current))
 
-
     for seq_name, squiggle in squiggles.items():
         x_vals = [s[0] for s in squiggle]
         y_vals = [s[1] for s in squiggle]
