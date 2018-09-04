@@ -38,34 +38,33 @@ You can read more about Deepbinner in this preprint:<br>
 
 ## Requirements
 
-Deepbinner runs on MacOS and Linux.
+Deepbinner runs on MacOS and Linux and requires Python 3.5+.
 
-<img align="right" src="images/tensorflow.png" alt="TensorFlow logo" width="105">
+<img align="right" src="images/tensorflow.png" alt="TensorFlow logo" width="90">
 
-Its most important requirement is [TensorFlow](https://www.tensorflow.org/), which powers the neural network. The easiest way to install TensorFlow is with pip: `pip3 install tensorflow`. TensorFlow can also [run on NVIDIA GPUs](https://www.tensorflow.org/install/install_linux#tensorflow_gpu_support) which can give much better performance, but installation is more complex (you'll need [CUDA](http://nvidia.com/cuda) and [cuDNN](http://developer.nvidia.com/cudnn)). If you're only going to use Deepbinner to classify reads, you may not need GPU-level performance ([read more here](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is very much recommended.
+Its most complex requirement is [TensorFlow](https://www.tensorflow.org/), which powers the neural network. TensorFlow can run on CPUs (easy to install, supported on many machines) or on NVIDIA GPUs (better performance). If you're only going to use Deepbinner to classify reads, you may not need GPU-level performance ([read more here](#performance)). But if you want to train your own Deepbinner neural network, then using a GPU is a necessity.
 
-Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/) and [h5py](https://www.h5py.org/)) but these should be taken care of when installing Deepbinner. It also assumes that you have the `gzip` command available on your command line. If you are going to [train your own Deepbinner network](https://github.com/rrwick/Deepbinner/wiki/Training-instructions), then you'll need a few more Python packages: [noise](https://github.com/caseman/noise), [edlib](https://github.com/Martinsos/edlib/tree/master/bindings/python) and [mappy](https://github.com/lh3/minimap2/tree/master/python).
+The simplest way to install TensorFlow for your CPU is with `pip3 install tensorflow`. Building TensorFlow from source may give slighly better performance (because it will use all instructions sets supported by your CPU) but [the installation is more complex](https://www.tensorflow.org/install/install_sources). If you are using Ubuntu and have an NVIDIA GPU, [check out these instructions](https://www.tensorflow.org/install/install_linux#tensorflow_gpu_support) for installing TensorFlow with GPU support.
+
+Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/) and [h5py](https://www.h5py.org/)) but these should be taken care of by pip when installing Deepbinner. It also assumes that you have `gzip` available on your command line. If you are going to train your own Deepbinner network, then you'll need a few more Python packages as well ([see the training instructions](https://github.com/rrwick/Deepbinner/wiki/Training-instructions)).
 
 
 ## Installation
 
 ### Install from source
 
-Running the `setup.py` script will install a `deepbinner` executable:
-
+You can install Deepbinner using pip, either from a local copy:
 ```bash
 git clone https://github.com/rrwick/Deepbinner.git
-cd Deepbinner
-python3 setup.py install
-deepbinner -h
+pip3 install ./Deepbinner
+deepbinner --help
 ```
 
-* If the `python3 setup.py install` command complains about permissions, you may need to run it with `sudo`.
-* Install just for your user: `python3 setup.py install --user`
-    * If you get a strange 'can't combine user with prefix' error, read [this](http://stackoverflow.com/questions/4495120).
-* Install to a specific location: `python3 setup.py install --prefix=$HOME/.local`
-* Install with pip (local copy): `pip3 install path/to/Deepbinner`
-* Install with pip (from GitHub): `pip3 install git+https://github.com/rrwick/Deepbinner.git`
+Or directly from GitHub:
+```
+pip3 install git+https://github.com/rrwick/Deepbinner.git
+deepbinner --help
+```
 
 
 ### Run without installation
@@ -78,6 +77,8 @@ Deepbinner/deepbinner-runner.py -h
 ```
 
 If you run Deepbinner this way, it's up to you to make sure that all [necessary Python packages](#requirements) are installed.
+
+
 
 ## Quick usage
 

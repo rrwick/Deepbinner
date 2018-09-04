@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import pathlib
 import shlex
 import shutil
 import subprocess
@@ -16,7 +17,8 @@ def readme():
 
 # Get the program version from another file.
 __version__ = '0.0.0'
-exec(open('deepbinner/version.py').read())
+version_file = str(pathlib.Path(os.path.realpath(__file__)).parent / 'deepbinner' / 'version.py')
+exec(open(version_file).read())
 
 
 class DeepbinnerInstall(install):
