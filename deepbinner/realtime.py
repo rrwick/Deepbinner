@@ -35,12 +35,14 @@ def realtime(args):
     make_output_dir(args.out_dir)
     try:
         waiting = False
+        ignore_files = set()
         while True:
             fast5s = look_for_new_fast5s(args.in_dir, args.out_dir, nested_out_dir)
+            fast5s = [x for x in fast5s if x not in ignore_files]
             if fast5s:
                 time.sleep(5)  # wait a bit to make sure any file moves are finished
                 classify_and_move(fast5s, args, start_model, start_input_size, end_model,
-                                  end_input_size, output_size)
+                                  end_input_size, output_size, ignore_files)
                 waiting = False
             else:
                 if waiting:
@@ -63,7 +65,7 @@ def look_for_new_fast5s(in_dir, out_dir, nested_out_dir):
 
 
 def classify_and_move(fast5s, args, start_model, start_input_size, end_model, end_input_size,
-                      output_size):
+                      output_size, ignore_files):
     print()
     print('Found {:,} fast5 files in {}'.format(len(fast5s), args.in_dir))
 
@@ -75,11 +77,11 @@ def classify_and_move(fast5s, args, start_model, start_input_size, end_model, en
         classify_fast5_files(fast5s, start_model, start_input_size, end_model, end_input_size,
                              output_size, args, full_output=False)
     print()
-    move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
+    move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s, ignore_files)
     print_summary_table(classifications, output=sys.stdout)
 
 
-def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s):
+def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s, ignore_files):
     move_count, fail_move_already_exists, fail_move_other_reason = 0, 0, 0
     counts = collections.defaultdict(int)
     for read_id, barcode_call in classifications.items():
@@ -95,6 +97,7 @@ def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
         dest_filepath = out_dir / pathlib.Path(fast5_file).name
         if dest_filepath.is_file():
             fail_move_already_exists += 1
+            ignore_files.add(fast5_file)
         else:
             try:
                 shutil.move(fast5_file, str(out_dir))
@@ -109,7 +112,7 @@ def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s)
     print_moving_error_messages(fail_move_already_exists, fail_move_other_reason, args.out_dir)
 
     # If we couldn't move any files, then something is wrong and we should quit.
-    if move_count == 0:
+    if fail_move_other_reason == len(fast5s):
         sys.exit('Error: no files were successfully moved to {}'.format(args.out_dir))
 
 
