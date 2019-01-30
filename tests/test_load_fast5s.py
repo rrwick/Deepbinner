@@ -31,13 +31,13 @@ class TestLoadFast5s(unittest.TestCase):
 
     def test_find_all_fast5s(self):
         fast5s = deepbinner.load_fast5s.find_all_fast5s(self.fast5_dir)
-        self.assertEqual(len(fast5s), 6)
+        self.assertEqual(len(fast5s), 7)
 
     def test_find_all_fast5s_verbose(self):
         fast5s = deepbinner.load_fast5s.find_all_fast5s(self.fast5_dir, verbose=True)
-        self.assertEqual(len(fast5s), 6)
+        self.assertEqual(len(fast5s), 7)
         self.assertTrue('Looking for fast5 files' in self.captured_output.getvalue())
-        self.assertTrue('6 fast5s found' in self.captured_output.getvalue())
+        self.assertTrue('7 fast5s found' in self.captured_output.getvalue())
 
     def test_get_read_id_and_signal_1(self):
         fast5 = self.fast5_dir / '5210_N128870_20180511_FAH70336_MN20200_sequencing_run_057_' \
@@ -62,3 +62,11 @@ class TestLoadFast5s(unittest.TestCase):
         read_id, signal = deepbinner.load_fast5s.get_read_id_and_signal(fast5)
         self.assertEqual(read_id, None)
         self.assertEqual(signal, None)
+
+    def test_get_read_id_and_signal_4(self):
+        fast5 = self.fast5_dir / 'FAK33493_1336eeb8050cb1ca93d41712cf8e817516306473_1000000.fast5'
+        read_id, signal = deepbinner.load_fast5s.get_read_id_and_signal(fast5)
+        self.assertEqual(read_id, "2fbd86a4-029a-45cf-8f18-411d542572ba")
+        self.assertEqual(len(signal), 5395)
+        self.assertEqual(signal[0], 505)
+        self.assertEqual(signal[5388], 436)

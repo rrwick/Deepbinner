@@ -24,7 +24,23 @@ import sys
 def get_read_id_and_signal(fast5_file):
     try:
         with h5py.File(fast5_file, 'r') as hdf5_file:
-            read_group = list(hdf5_file['Raw/Reads/'].values())[0]
+
+            # The older fast5 format (exclusively one read per file)
+            if 'Raw' in hdf5_file.keys():
+                read_group = list(hdf5_file['Raw/Reads/'].values())[0]
+
+            # Newer fast5s can have multiple reads per file. Deepbinner doesn't really support this
+            # yet, but it can handle it if there is just one read per file.
+            else:
+                reads = [x for x in hdf5_file.keys() if x.startswith('read_')]
+                if len(reads) > 1:
+                    sys.exit('Error: Deepbinner does not (yet) support multi-read fast5 files')
+                if len(reads) == 0:
+                    # TODO: print a warning here
+                    return None, None
+                read_name = reads[0]
+                read_group = hdf5_file[read_name + '/Raw/']
+
             read_id = read_group.attrs['read_id'].decode()
             signal = read_group['Signal'][:]
         return read_id, signal

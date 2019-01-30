@@ -25,8 +25,8 @@ class TestModelLoading(unittest.TestCase):
 
     def setUp(self):
         model_dir = pathlib.Path(__file__).parent.parent / 'models'
-        self.start_model = model_dir / 'EXP-NBD103_read_starts'
-        self.end_model = model_dir / 'EXP-NBD103_read_ends'
+        self.start_model = str(model_dir / 'EXP-NBD103_read_starts')
+        self.end_model = str(model_dir / 'EXP-NBD103_read_ends')
         self.captured_output = io.StringIO()
         warnings.simplefilter('ignore', DeprecationWarning)
         warnings.simplefilter('ignore', FutureWarning)
@@ -76,8 +76,8 @@ class TestFast5Classification(unittest.TestCase):
                                              'sequencing_run_057_Deepbinner_amplicon_43629_' \
                                              'read_11206_ch_157_strand.fast5'
         model_dir = pathlib.Path(__file__).parent.parent / 'models'
-        self.start_model = model_dir / 'EXP-NBD103_read_starts'
-        self.end_model = model_dir / 'EXP-NBD103_read_ends'
+        self.start_model = str(model_dir / 'EXP-NBD103_read_starts')
+        self.end_model = str(model_dir / 'EXP-NBD103_read_ends')
 
         self.captured_stderr = io.StringIO()
         self.captured_stdout = io.StringIO()
@@ -118,6 +118,7 @@ class TestFast5Classification(unittest.TestCase):
         self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
         self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
         self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
+        self.assertEqual(classifications['2fbd86a4-029a-45cf-8f18-411d542572ba'], '12')
 
     def test_end_model_only(self):
         fast5s = deepbinner.load_fast5s.find_all_fast5s(self.fast5_dir, verbose=True)
@@ -136,6 +137,7 @@ class TestFast5Classification(unittest.TestCase):
         self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
         self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
         self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
+        self.assertEqual(classifications['2fbd86a4-029a-45cf-8f18-411d542572ba'], '12')
 
     def test_start_and_end_models(self):
         self.args.require_either = True
@@ -155,6 +157,7 @@ class TestFast5Classification(unittest.TestCase):
         self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
         self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
         self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
+        self.assertEqual(classifications['2fbd86a4-029a-45cf-8f18-411d542572ba'], '12')
 
     def test_start_and_end_models_require_both(self):
         self.args.require_both = True
@@ -174,6 +177,7 @@ class TestFast5Classification(unittest.TestCase):
         self.assertEqual(classifications['5ce8d6ab-8c24-43cc-808b-50fb336fda2f'], '2')
         self.assertEqual(classifications['424bfd6b-576c-4e2c-bf86-604c771b5ec9'], '3')
         self.assertEqual(classifications['177c3867-6812-4476-a6da-9e4d5c43b760'], '3')
+        self.assertEqual(classifications['2fbd86a4-029a-45cf-8f18-411d542572ba'], '12')
 
     def test_regular_output_start_only(self):
         start_model, start_input_size, end_model, end_input_size, output_size, model_count = \
