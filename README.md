@@ -27,6 +27,7 @@ You can read more about Deepbinner in this preprint:<br>
      * [Step 2: binning basecalled reads](#step-2-binning-basecalled-reads)
   * [Using Deepbinner before basecalling](#using-deepbinner-before-basecalling)
   * [Using Deepbinner with Albacore demultiplexing](#using-deepbinner-with-albacore-demultiplexing)
+  * [Using Deepbinner with multi-read fast5s](#using-deepbinner-with-multi-read-fast5s)
   * [Performance](#performance)
   * [Training](#training)
   * [Contributing](#contributing)
@@ -47,6 +48,10 @@ Its most complex requirement is [TensorFlow](https://www.tensorflow.org/), which
 The simplest way to install TensorFlow for your CPU is with `pip3 install tensorflow`. Building TensorFlow from source may give slighly better performance (because it will use all instructions sets supported by your CPU) but [the installation is more complex](https://www.tensorflow.org/install/install_sources). If you are using Ubuntu and have an NVIDIA GPU, [check out these instructions](https://www.tensorflow.org/install/install_linux#tensorflow_gpu_support) for installing TensorFlow with GPU support.
 
 Deepbinner uses some other Python packages ([Keras](https://keras.io/), [NumPy](http://www.numpy.org/) and [h5py](https://www.h5py.org/)) but these should be taken care of by pip when installing Deepbinner. It also assumes that you have `gzip` available on your command line. If you are going to train your own Deepbinner network, then you'll need a few more Python packages as well ([see the training instructions](https://github.com/rrwick/Deepbinner/wiki/Training-instructions)).
+
+If you are using multi-read fast5 files (new in 2019), then you'll also need to have the `multi_to_single_fast5` tool installed on your path. You can get it here: [github.com/nanoporetech/ont_fast5_api](https://github.com/nanoporetech/ont_fast5_api).
+
+
 
 
 ## Installation
@@ -174,6 +179,15 @@ If you use both Deepbinner and Albacore to demultiplex reads, only keeping reads
 The easiest way to achieve this is to follow the [Using Deepbinner before basecalling](#using-deepbinner-before-basecalling) instructions above. Then run Albacore separately on each of Deepbinner's output directories, with its `--barcoding` option on. You should find that for each bin, Albacore puts most of the reads in the same bin (the reads we want to keep), some in the unclassified bin (slightly suspect reads, likely with lower quality basecalls) and a small number in a different bin (very suspect reads).
 
 [Here are some instructions and Bash code to carry this out automatically.](https://github.com/rrwick/Deepbinner/wiki/Using-Deepbinner-with-Albacore)
+
+
+
+
+## Using Deepbinner with multi-read fast5s
+
+Multi-read fast5s complicate the matter for Deepbinner: if one fast5 file contains reads from more than one barcode, then it cannot simply be moved into a bin. The simplest solution is to first run the `multi_to_single_fast5` tool available in the [ont_fast5_api](https://github.com/nanoporetech/ont_fast5_api) before running Deepbinner. This is necessary if you are running the `deepbinner classify` command.
+
+If you are running the [`deepbinner realtime`](#using-deepbinner-before-basecalling) command, then Deepbinner can handle multi-read fast5 files. It will run the `multi_to_single_fast5` tool putting the single-read fast5s into a temporary directory, and then move the single-read fast5s into bins in the output directory. However, unlike running `deepbinner realtime` on single-read fast5s, where the fast5s are _moved_ into the destination directory, running it on multi-read fast5s will leave the original input files in place (because it's the unpacked single-read fast5s which are moved). So you might want to delete the multi-read fast5s after Deepbinner finishes to save disk space.
 
 
 

@@ -24,7 +24,7 @@ import numpy as np
 from keras.models import load_model
 from keras import backend
 import tensorflow as tf
-from .load_fast5s import find_all_fast5s, get_read_id_and_signal
+from .load_fast5s import find_all_fast5s, get_read_id_and_signal, determine_single_or_multi_fast5s
 from .trim_signal import normalise
 from .misc import print_summary_table
 
@@ -104,13 +104,20 @@ def load_trained_model(model_file, out_dest=sys.stderr):
 
 
 def classify_fast5_files(fast5_files, start_model, start_input_size, end_model, end_input_size,
-                         output_size, args, full_output=True, summary_table=True):
+                         output_size, args, full_output=True, summary_table=True,
+                         verified_single_read=False):
     if not fast5_files:
         sys.exit('Error: no fast5 files found')
     if full_output:
         out_dest = sys.stderr
     else:
         out_dest = sys.stdout
+
+    if not verified_single_read:
+        single_or_multi = determine_single_or_multi_fast5s(fast5_files)
+        if single_or_multi == 'multi':
+            sys.exit('Error: deepbinner classify requires one-read-per-file fast5s - convert with '
+                     'multi_to_single_fast5 before running')
 
     using_read_starts = start_model is not None
     using_read_ends = end_model is not None

@@ -70,3 +70,16 @@ class TestLoadFast5s(unittest.TestCase):
         self.assertEqual(len(signal), 5395)
         self.assertEqual(signal[0], 505)
         self.assertEqual(signal[5388], 436)
+
+
+class SingleOrMulti(unittest.TestCase):
+
+    def test_single(self):
+        fast5_dir = pathlib.Path(__file__).parent / 'fast5_files'
+        fast5s = deepbinner.load_fast5s.find_all_fast5s(fast5_dir)
+        self.assertEqual(deepbinner.load_fast5s.determine_single_or_multi_fast5s(fast5s), 'single')
+
+    def test_multi(self):
+        fast5_dir = pathlib.Path(__file__).parent / 'multi_read_fast5_files'
+        fast5s = deepbinner.load_fast5s.find_all_fast5s(fast5_dir)
+        self.assertEqual(deepbinner.load_fast5s.determine_single_or_multi_fast5s(fast5s), 'multi')

@@ -15,11 +15,14 @@ import collections
 import os
 import pathlib
 import shutil
+import subprocess
 import sys
+import tempfile
 import time
 from .misc import print_summary_table
 
 from .classify import load_and_check_models, classify_fast5_files, set_tensorflow_threads
+from .load_fast5s import determine_single_or_multi_fast5s
 
 
 def realtime(args):
@@ -39,10 +42,12 @@ def realtime(args):
         while True:
             fast5s = look_for_new_fast5s(args.in_dir, args.out_dir, nested_out_dir)
             fast5s = [x for x in fast5s if x not in ignore_files]
+            single_or_multi = determine_single_or_multi_fast5s(fast5s)
+
             if fast5s:
                 time.sleep(5)  # wait a bit to make sure any file moves are finished
-                classify_and_move(fast5s, args, start_model, start_input_size, end_model,
-                                  end_input_size, output_size, ignore_files)
+                classify_and_move(fast5s, single_or_multi, args, start_model, start_input_size,
+                                  end_model, end_input_size, output_size, ignore_files)
                 waiting = False
             else:
                 if waiting:
@@ -64,21 +69,34 @@ def look_for_new_fast5s(in_dir, out_dir, nested_out_dir):
     return in_dir_fast5s
 
 
-def classify_and_move(fast5s, args, start_model, start_input_size, end_model, end_input_size,
-                      output_size, ignore_files):
+def classify_and_move(fast5s, single_or_multi, args, start_model, start_input_size, end_model,
+                      end_input_size, output_size, ignore_files):
     print()
     print('Found {:,} fast5 files in {}'.format(len(fast5s), args.in_dir))
 
     # We don't classify all found fast5s, because if there are a ton it will take a long time to
-    # finish, and nothing will be moved while we wait. Instead we grab the first
-    fast5s = fast5s[:args.batch_size * 100]
+    # finish, and nothing will be moved while we wait. Instead we work on a subset (lots for
+    # single-read fast5s, a few for multi-read fast5s).
+    if single_or_multi == 'single':
+        fast5s = fast5s[:20000]  # TODO: make this an option?
+    elif single_or_multi == 'multi':
+        fast5s = fast5s[:5]     # TODO: make this an option?
+    else:
+        assert False
 
-    classifications, read_id_to_fast5_file = \
-        classify_fast5_files(fast5s, start_model, start_input_size, end_model, end_input_size,
-                             output_size, args, full_output=False)
-    print()
-    move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s, ignore_files)
-    print_summary_table(classifications, output=sys.stdout)
+    with tempfile.TemporaryDirectory() as temp_single_read_dir:
+
+        # If necessary, unpack multi-read-fast5s so we can work on individual reads.
+        if single_or_multi == 'multi':
+            ignore_files.update(fast5s)
+            fast5s = unpack_multi_read_fast5s(fast5s, temp_single_read_dir)
+
+        classifications, read_id_to_fast5_file = \
+            classify_fast5_files(fast5s, start_model, start_input_size, end_model, end_input_size,
+                                 output_size, args, full_output=False, verified_single_read=True)
+        print()
+        move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s, ignore_files)
+        print_summary_table(classifications, output=sys.stdout)
 
 
 def move_classified_fast5s(classifications, read_id_to_fast5_file, args, fast5s, ignore_files):
@@ -151,3 +169,19 @@ def print_moving_progress(completed, total):
     percent = 100.0 * completed / total
     print('\rMoving fast5s:      {} / {} ({:.1f}%)'.format(completed, total, percent),
           end='', flush=True)
+
+
+def unpack_multi_read_fast5s(fast5s, temp_single_read_dir):
+    check_for_multi_to_single_fast5()
+    print('Unpacking fast5s with multi_to_single_fast5:')
+    for fast5 in fast5s:
+        subprocess.check_output(['multi_to_single_fast5', '-i', fast5, '-s', temp_single_read_dir])
+    print()
+    out_fast5s = [str(x) for x in sorted(pathlib.Path(temp_single_read_dir).glob('**/*.fast5'))]
+    return out_fast5s
+
+
+def check_for_multi_to_single_fast5():
+    if shutil.which('multi_to_single_fast5') is None:
+        sys.exit('Error: Deepbinner requires the multi_to_single_fast5 tool be installed when '
+                 'working on multi-read fast5 files')
