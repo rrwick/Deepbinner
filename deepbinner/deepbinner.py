@@ -187,6 +187,9 @@ def realtime_subparser(subparsers):
     classify_and_realtime_options(group)
 
     other_args = group.add_argument_group('Other')
+    other_args.add_argument('--stop', action='store_true',
+                            help='Automatically stop when there are no more input reads (default: '
+                                 'continue to run and wait for more reads)')
     other_args.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS,
                             help='Show this help message and exit')
 

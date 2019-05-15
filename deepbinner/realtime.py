@@ -44,11 +44,19 @@ def realtime(args):
             fast5s = [x for x in fast5s if x not in ignore_files]
             single_or_multi = determine_single_or_multi_fast5s(fast5s)
 
+            # If there are fast5s to demultiplex, process them.
             if fast5s:
                 time.sleep(5)  # wait a bit to make sure any file moves are finished
                 classify_and_move(fast5s, single_or_multi, args, start_model, start_input_size,
                                   end_model, end_input_size, output_size, ignore_files)
                 waiting = False
+
+            # If there are no fast5s left and the user requested a stopping run, then stop.
+            elif args.stop:
+                break
+
+            # If there are no fast5s left and the user did not request a stopping run, then wait
+            # for more files.
             else:
                 if waiting:
                     print('.', end='', flush=True)
@@ -56,7 +64,8 @@ def realtime(args):
                     print('\nWaiting for new fast5 files (Ctrl-C to stop)', end='',
                           flush=True)
                     waiting = True
-            time.sleep(5)
+                time.sleep(5)
+
     except KeyboardInterrupt:
         print('\n\nStopping Deepbinner real-time binning\n')
 
