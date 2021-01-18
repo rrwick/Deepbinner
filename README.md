@@ -16,6 +16,22 @@ You can read more about Deepbinner in this preprint:<br>
 
 
 
+## 2021 update
+
+I developed Deepbinner almost three years ago, which is a very long time in the fast-moving space of Nanopore sequencing! Since then, a lot has changed, and for most users, Deepbinner is probably no longer the best choice for demultiplexing your Nanopore reads.
+
+When Deepbinner was published, it had a nice advantage over sequence-based demultiplexing. I.e. demultiplexing from the raw signal gave better accuracy than demultiplexing from a basecalled sequence. But the last few years have seen very nice increases in Oxford Nanopore basecalling accuracy, and that has made sequence-based demultiplexing more accurate as well, so Deepbinner's advantage has considerably narrowed. Guppy (Oxford Nanopore's production basecalling tool) has integrated sequence-based demultiplexing, and this makes it very convenient to use. Also, Deepbinner's models are out-of-date: they cover only 12 barcodes, but up to 96 native barcodes are now available.
+
+The short version is this: I think most users should demultiplex with Guppy, not Deepbinner. Guppy is easier to run and will do nearly as well as Deepbinner (probably, I haven't tested this quantitatively).
+
+On a final note, I don't think that the concept of raw-signal-based demultiplexing with a neural network is obsolete. Raw signals always contain more information than basecalled sequences, and neural networks can make very good classifiers. In a perfect world, I'd like to see raw-signal neural-network demultiplexing integrated into Guppy – a feature request in case any Guppy developers are reading this :smile: So I will leave Deepbinner's repo in place for any intrepid users that might want to modify it, train custom models, etc. But consider it deprecated.
+
+
+
+
+
+
+
 ## Table of contents
 
   * [Requirements](#requirements)
